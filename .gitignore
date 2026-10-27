@@ -1,0 +1,15 @@
+.DS_Store
+.env
+.env.*
+*.pem
+*.key
+*.p8
+*.p12
+*.mobileprovision
+/.secrets/
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.turbo/
+*.log
