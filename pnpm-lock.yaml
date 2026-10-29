@@ -21,6 +21,19 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9(jsdom@24.1.3)
 
+  packages/cli:
+    dependencies:
+      '@blankgrimoire/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@blankgrimoire/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.2
+
   packages/runtime:
     dependencies:
       '@blankgrimoire/types':

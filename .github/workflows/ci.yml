@@ -2,9 +2,10 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, edited, synchronize, reopened]
 
 concurrency:
-  group: ci-${{ github.head_ref }}
+  group: ci-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 permissions:
@@ -16,14 +17,19 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @blankgrimoire/types build
+      - run: pnpm typecheck
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
