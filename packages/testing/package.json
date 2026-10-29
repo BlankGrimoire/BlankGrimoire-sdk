@@ -1,0 +1,25 @@
+{
+  "name": "@blankgrimoire/testing",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BlankGrimoire/BlankGrimoire-sdk",
+    "directory": "packages/testing"
+  },
+  "dependencies": {
+    "@blankgrimoire/types": "workspace:*"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  }
+}
