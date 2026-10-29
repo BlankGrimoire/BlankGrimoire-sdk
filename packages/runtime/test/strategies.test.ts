@@ -1,32 +1,25 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+// @ts-ignore - jsdom has no bundled type declarations; imported for DOM parsing in tests
+import { JSDOM } from 'jsdom';
 import {
   extractScriptJSON,
   extractHydration,
   extractAjax,
 } from '../src/strategies.js';
+import type { ExtractionStrategy } from '@blankgrimoire/types';
 
-function createElement(tag: string, className: string | null, attrs: Record<string, string>, textContent: string): Element {
-  return {
-    tagName: tag.toUpperCase(),
-    getAttribute: (name: string) => attrs[name] ?? null,
-    textContent,
-    classList: {
-      contains: (c: string) => className ? className.split(' ').includes(c) : false,
-    },
-  } as unknown as Element;
-}
-
-function makeDocument(elements: Element[]): Document {
-  return {
-    querySelectorAll: () => elements,
-  } as unknown as Document;
+function makeDocument(html: string): Document {
+  const dom = new JSDOM(html);
+  return dom.window.document;
 }
 
 describe('extractScriptJSON', () => {
   it('extracts JSON from script tag matching pattern', () => {
-    const doc = makeDocument([
-      createElement('script', null, { src: '/assets/app.js' }, JSON.stringify({ pages: [{ key: 'p1', title: 'Page 1' }] })),
-    ]);
+    const doc = makeDocument(
+      '<html><body><script src="/assets/app.js">' +
+        JSON.stringify({ pages: [{ key: 'p1', title: 'Page 1' }] }) +
+        '</script></body></html>',
+    );
     const result = extractScriptJSON(
       { kind: 'scriptJSON', pattern: 'app\\.js', path: 'pages.0' },
       doc,
@@ -41,9 +34,9 @@ describe('extractScriptJSON', () => {
   });
 
   it('returns null when no script matches pattern', () => {
-    const doc = makeDocument([
-      createElement('script', null, { src: '/assets/other.js' }, '{}'),
-    ]);
+    const doc = makeDocument(
+      '<html><body><script src="/assets/other.js">"{\"foo\":\"bar\"}"</script></body></html>',
+    );
     const result = extractScriptJSON(
       { kind: 'scriptJSON', pattern: 'app\\.js', path: 'pages.0' },
       doc,
@@ -52,29 +45,31 @@ describe('extractScriptJSON', () => {
   });
 
   it('returns null when path does not resolve', () => {
-    const doc = makeDocument([
-      createElement('script', null, { src: '/assets/app.js' }, JSON.stringify({ foo: 'bar' })),
-    ]);
+    const doc = makeDocument(
+      '<html><body><script src="/assets/app.js">' +
+        JSON.stringify({ foo: 'bar' }) +
+        '</script></body></html>',
+    );
     const result = extractScriptJSON(
       { kind: 'scriptJSON', pattern: 'app\\.js', path: 'pages.0' },
       doc,
     );
     expect(result).toBe(null);
   });
-
 });
 
 describe('extractHydration', () => {
   const originalGlobalThis = globalThis;
 
   beforeEach(() => {
-    // Clean up hydration payloads before each test
-    (globalThis as unknown as { __NEXT_DATA__?: unknown }).__NEXT_DATA__ = undefined;
+    (globalThis as unknown as { __NEXT_DATA__?: unknown }).__NEXT_DATA__ =
+      undefined;
     (globalThis as unknown as { __NUXT__?: unknown }).__NUXT__ = undefined;
   });
 
   afterEach(() => {
-    (globalThis as unknown as { __NEXT_DATA__?: unknown }).__NEXT_DATA__ = undefined;
+    (globalThis as unknown as { __NEXT_DATA__?: unknown }).__NEXT_DATA__ =
+      undefined;
     (globalThis as unknown as { __NUXT__?: unknown }).__NUXT__ = undefined;
   });
 
@@ -122,37 +117,37 @@ describe('extractHydration', () => {
 });
 
 describe('extractAjax', () => {
-  const originalNative = (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> }).__native;
-  let capturedRequest: { url: string; method: string; body?: string } | null = null;
+  const originalNative = (globalThis as unknown as {
+    __native?: Record<string, (...args: unknown[]) => unknown>;
+  }).__native;
+  let capturedRequest: { url: string; method: string; body?: string } | null =
+    null;
 
   beforeEach(() => {
     capturedRequest = null;
-    (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> }).__native = {
-      request: (req: { url: string; method?: string; body?: string }) => {
-        capturedRequest = { url: req.url, method: req.method ?? 'GET', body: req.body };
-        return {
-          status: 200,
-          url: req.url,
-          headers: { 'content-type': 'text/html' },
-          body: '<html><body><img class="reader" src="https://example.org/ajax.jpg" /></body></html>',
-        };
-      },
-    };
-  });
-
-  afterEach(() => {
-    (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> }).__native = originalNative;
+    (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> })
+      .__native = {
+        request: (...args: unknown[]) => {
+          const req = args[0] as { url: string; method?: string; body?: string };
+          capturedRequest = {
+            url: req.url,
+            method: req.method ?? 'GET',
+            ...(req.body !== undefined ? { body: req.body } : {}),
+          };
+          return {
+            status: 200,
+            url: req.url,
+            headers: { 'content-type': 'text/html' },
+            body:
+              '<html><body><div class="reader"><img src="https://example.org/ajax.jpg" /></div></body></html>',
+          };
+        },
+      };
   });
 
   it('makes HTTP request and applies css strategy to response', async () => {
-    const doc = {
-      implementation: {
-        createHTMLDocument: () => ({
-          documentElement: { innerHTML: '' },
-          querySelector: () => createElement('img', 'reader', { src: 'https://example.org/ajax.jpg' }, ''),
-        }),
-      },
-    } as unknown as Document;
+    const dom = new JSDOM('<html><body></body></html>');
+    const doc = dom.window.document;
 
     const result = await extractAjax(
       {
@@ -178,14 +173,8 @@ describe('extractAjax', () => {
   });
 
   it('resolves relative path against baseURL', async () => {
-    const doc = {
-      implementation: {
-        createHTMLDocument: () => ({
-          documentElement: { innerHTML: '' },
-          querySelector: () => null,
-        }),
-      },
-    } as unknown as Document;
+    const dom = new JSDOM('<html><body></body></html>');
+    const doc = dom.window.document;
 
     await extractAjax(
       {
@@ -202,20 +191,15 @@ describe('extractAjax', () => {
   });
 
   it('returns null when __http fails', async () => {
-    (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> }).__native = {
-      request: () => {
-        throw new Error('network error');
-      },
-    };
+    (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> })
+      .__native = {
+        request: () => {
+          throw new Error('network error');
+        },
+      };
 
-    const doc = {
-      implementation: {
-        createHTMLDocument: () => ({
-          documentElement: { innerHTML: '' },
-          querySelector: () => null,
-        }),
-      },
-    } as unknown as Document;
+    const dom = new JSDOM('<html><body></body></html>');
+    const doc = dom.window.document;
 
     const result = await extractAjax(
       {

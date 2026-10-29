@@ -1,34 +1,12 @@
 import { describe, expect, it } from 'vitest';
+// @ts-ignore - jsdom has no bundled type declarations; imported for DOM parsing in tests
+import { JSDOM } from 'jsdom';
 import { extract } from '../src/engine.js';
-import type { ThemeSelectors } from '@blankgrimoire/types';
+import type { ThemeSelectors, ExtractionStrategy } from '@blankgrimoire/types';
 
-function createElement(tag: string, className: string | null, attrs: Record<string, string>): Element {
-  return {
-    tagName: tag.toUpperCase(),
-    getAttribute: (name: string) => attrs[name] ?? null,
-    classList: {
-      contains: (c: string) => className ? className.split(' ').includes(c) : false,
-    },
-  } as unknown as Element;
-}
-
-function makeDocument(elements: Element[]): Document {
-  return {
-    querySelector: (selector: string) => {
-      const classMatch = selector.match(/\.([\w-]+)/);
-      if (classMatch) {
-        return elements.find((el) => {
-          const classAttr = (el as unknown as { getAttribute: (n: string) => string | null }).getAttribute('class');
-          return classAttr?.split(' ').includes(classMatch[1]);
-        }) ?? null;
-      }
-      const tagMatch = selector.match(/^([\w-]+)$/);
-      if (tagMatch) {
-        return elements.find((el) => el.tagName === tagMatch[1].toUpperCase()) ?? null;
-      }
-      return null;
-    },
-  } as unknown as Document;
+function makeDocument(html: string): Document {
+  const dom = new JSDOM(html);
+  return dom.window.document;
 }
 
 const baseSelectors: ThemeSelectors = {
@@ -51,25 +29,26 @@ const context = {
 
 describe('extract', () => {
   it('returns null when no strategy matches', async () => {
-    const doc = makeDocument([
-      createElement('p', null, {}),
-    ]);
+    const doc = makeDocument('<html><body><p>nothing</p></body></html>');
+    const sMissing: ExtractionStrategy = {
+      kind: 'css',
+      image: '.missing',
+      srcAttributes: ['src'],
+    };
     const result = await extract(
-      { strategies: [{ kind: 'css', image: '.missing', srcAttributes: ['src'] }], context },
+      { strategies: [sMissing], context },
       doc,
     );
     expect(result).toBe(null);
   });
 
   it('returns first non-empty result', async () => {
-    const doc = makeDocument([
-      createElement('img', null, { src: 'a.jpg' }),
-    ]);
+    const doc = makeDocument('<html><body><img src="a.jpg" /></body></html>');
     const result = await extract(
       {
         strategies: [
-          { kind: 'css', image: '.nonexistent', srcAttributes: ['src'] },
-          { kind: 'css', image: 'img', srcAttributes: ['src'] },
+          { kind: 'css', image: '.nonexistent', srcAttributes: ['src'] } as ExtractionStrategy,
+          { kind: 'css', image: 'img', srcAttributes: ['src'] } as ExtractionStrategy,
         ],
         context,
       },
@@ -84,18 +63,18 @@ describe('extract', () => {
   });
 
   it('applies user overrides to selectors', async () => {
-    const doc = makeDocument([
-      createElement('img', null, { 'data-src': 'override.jpg' }),
-    ]);
+    const doc = makeDocument('<html><body><img data-src="override.jpg" /></body></html>');
     const overriddenContext = {
       ...context,
       overrides: {
-        pages: { strategies: [{ kind: 'css', image: 'img', srcAttributes: ['data-src'] }] },
+        pages: {
+          strategies: [{ kind: 'css', image: 'img', srcAttributes: ['data-src'] } as ExtractionStrategy],
+        },
       },
     };
     const result = await extract(
       {
-        strategies: [{ kind: 'css', image: 'img', srcAttributes: ['src'] }],
+        strategies: [{ kind: 'css', image: 'img', srcAttributes: ['src'] } as ExtractionStrategy],
         context: overriddenContext,
       },
       doc,
