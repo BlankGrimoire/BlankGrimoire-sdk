@@ -2,7 +2,10 @@
   "branches": ["main"],
   "tagFormat": "v${version}",
   "plugins": [
-    ["@semantic-release/commit-analyzer", { "preset": "conventionalcommits" }],
+    ["@semantic-release/commit-analyzer", {
+      "preset": "conventionalcommits",
+      "mergeCommitPatterns": ["^feat!.*release v\\d+"]
+    }],
     ["@semantic-release/release-notes-generator", { "preset": "conventionalcommits" }],
     ["@semantic-release/changelog", { "changelogTitle": "# Changelog" }],
     ["@semantic-release/exec", { "prepareCmd": "bash scripts/set-version.sh ${nextRelease.version}" }],
