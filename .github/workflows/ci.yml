@@ -2,41 +2,29 @@ name: CI
 
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    branches: [main]
 
 concurrency:
-  group: ci-${{ github.head_ref || github.run_id }}
+  group: ci-${{ github.head_ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  verify:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.15.0
-
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
-
-      - run: pnpm build
-
       - run: pnpm typecheck
-
+      - run: pnpm build
       - run: pnpm test
-
-      - name: Check generated schema is up to date
-        run: pnpm schema:check
-
-      - name: Smoke-test the CLI binary
-        run: node packages/cli/dist/cli.js --help

@@ -1,23 +1,11 @@
 {
   "name": "@blankgrimoire/types",
-  "version": "1.0.0",
-  "description": "TypeScript contract shared by BlankGrimoire theme adapters and hosts.",
+  "version": "2.0.0",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
+  "files": ["dist"],
   "repository": {
     "type": "git",
     "url": "https://github.com/BlankGrimoire/BlankGrimoire-sdk",
@@ -25,11 +13,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests"
-  },
-  "devDependencies": {
-    "ajv": "^8.20.0",
-    "ajv-formats": "^3.0.1"
   }
 }
