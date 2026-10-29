@@ -1,0 +1,19 @@
+{
+  "name": "@blankgrimoire/runtime",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/runtime.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BlankGrimoire/BlankGrimoire-sdk",
+    "directory": "packages/runtime"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=iife --outfile=dist/runtime.js --global-name=BlankGrimoireRuntime",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests"
+  }
+}
