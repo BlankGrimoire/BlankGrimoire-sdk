@@ -38,6 +38,20 @@ Human contributors: see `CONTRIBUTING.md` (if present) and the organization's `.
 
 `strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, ES2020 target, vitest, esbuild. `packages/types` is the single source of truth for the contract. `API_VERSION` is 1 and the SDK major version equals the adapter `apiVersion`.
 
+## Documentation
+
+All SDK implementation details are in `docs/`:
+
+| Area | Entry Point |
+|------|-------------|
+| Architecture | `docs/architecture/overview.md` |
+| Contract | `docs/contract/overview.md` |
+| Runtime | `docs/runtime/overview.md` |
+| Testing | `docs/testing/overview.md` |
+| CLI | `docs/cli/overview.md` |
+| Guides | `docs/guides/README.md` |
+| Reference | `docs/reference/README.md` |
+
 ## Commands
 
 | Task | Command |
