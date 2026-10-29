@@ -21,7 +21,11 @@ importers:
         specifier: ^2.1.0
         version: 2.1.9
 
-  packages/runtime: {}
+  packages/runtime:
+    dependencies:
+      '@blankgrimoire/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/types:
     devDependencies:

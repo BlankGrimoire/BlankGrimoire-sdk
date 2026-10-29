@@ -11,6 +11,9 @@
     "url": "https://github.com/BlankGrimoire/BlankGrimoire-sdk",
     "directory": "packages/runtime"
   },
+  "dependencies": {
+    "@blankgrimoire/types": "workspace:*"
+  },
   "scripts": {
     "build": "esbuild src/index.ts --bundle --format=iife --outfile=dist/runtime.js --global-name=BlankGrimoireRuntime",
     "typecheck": "tsc -p tsconfig.json --noEmit",
