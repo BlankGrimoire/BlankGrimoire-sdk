@@ -1,7 +1,7 @@
 {
   "name": "blankgrimoire-sdk",
   "private": true,
-  "version": "2.0.0",
+  "version": "1.0.0",
   "license": "MIT",
   "packageManager": "pnpm@9.15.0",
   "engines": {
@@ -11,10 +11,10 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "schema": "ts-json-schema-generator -p packages/types/src/index.ts -t '*' -o schema/v2.json --no-type-check"
+    "schema": "ts-json-schema-generator -p packages/types/src/index.ts -t '*' -o schema/v1.json --no-type-check",
+    "schema:check": "pnpm schema && git diff --exit-code -- schema/v1.json"
   },
   "devDependencies": {
-    "esbuild": "^0.24.0",
     "ts-json-schema-generator": "^2.3.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"

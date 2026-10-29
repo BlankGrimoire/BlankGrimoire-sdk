@@ -1,0 +1,37 @@
+{
+  "name": "@blankgrimoire/runtime",
+  "version": "1.0.0",
+  "description": "Declarative extraction runtime for BlankGrimoire theme adapters.",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./runtime.js": "./dist/runtime.js"
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BlankGrimoire/BlankGrimoire-sdk",
+    "directory": "packages/runtime"
+  },
+  "dependencies": {
+    "@blankgrimoire/types": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "jsdom": "^24.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && esbuild src/index.ts --bundle --format=iife --outfile=dist/runtime.js --global-name=BlankGrimoireRuntime",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run --passWithNoTests"
+  }
+}

@@ -1,0 +1,891 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AdapterManifest": {
+      "additionalProperties": false,
+      "description": "Adapter manifest published next to the bundle.\n\nThere is no `baseURL` and no domain: hosts come from the user's `SiteProfile`, which is an iOS app concept and not part of this SDK.",
+      "properties": {
+        "apiVersion": {
+          "$ref": "#/definitions/ApiVersion"
+        },
+        "detectionSignature": {
+          "$ref": "#/definitions/ThemeSignature",
+          "description": "Theme detection signature (not a cryptographic signature)."
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "sha256": {
+          "description": "SHA-256 of the bundle, lowercase hexadecimal.",
+          "pattern": "^[a-f0-9]{64}$",
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "apiVersion",
+        "detectionSignature",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "ApiVersion": {
+      "const": 1,
+      "description": "Literal type of the current adapter API version.",
+      "type": "number"
+    },
+    "Attribution": {
+      "additionalProperties": false,
+      "properties": {
+        "credits": {
+          "type": "string"
+        },
+        "logoURL": {
+          "$ref": "#/definitions/URLString"
+        },
+        "siteName": {
+          "type": "string"
+        },
+        "siteURL": {
+          "$ref": "#/definitions/URLString"
+        }
+      },
+      "required": [
+        "siteName",
+        "siteURL"
+      ],
+      "type": "object"
+    },
+    "Chapter": {
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "language": {
+          "description": "BCP-47 language tag.",
+          "type": "string"
+        },
+        "number": {
+          "type": "number"
+        },
+        "publishedAt": {
+          "$ref": "#/definitions/ISODateString"
+        },
+        "title": {
+          "type": "string"
+        },
+        "volume": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "key"
+      ],
+      "type": "object"
+    },
+    "ContentRating": {
+      "description": "Content rating. Adapters emit `unknown` when the site does not expose one.",
+      "enum": [
+        "safe",
+        "suggestive",
+        "mature",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "ExtractionStrategy": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "headers": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Optional headers attached to every extracted page.",
+              "type": "object"
+            },
+            "image": {
+              "description": "Selector matching page images.",
+              "type": "string"
+            },
+            "kind": {
+              "const": "css",
+              "type": "string"
+            },
+            "srcAttributes": {
+              "description": "Attributes tried in order, e.g. `[\"data-src\", \"src\"]`.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "image",
+            "srcAttributes"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "base64": {
+              "description": "Decode the script text from base64 before parsing.",
+              "type": "boolean"
+            },
+            "kind": {
+              "const": "scriptJSON",
+              "type": "string"
+            },
+            "path": {
+              "description": "Dot path to the page array inside the decoded JSON.",
+              "type": "string"
+            },
+            "pattern": {
+              "description": "Regex matched against inline script text or a script `src`.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "pattern",
+            "path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "framework": {
+              "enum": [
+                "next",
+                "nuxt"
+              ],
+              "type": "string"
+            },
+            "kind": {
+              "const": "hydration",
+              "type": "string"
+            },
+            "path": {
+              "description": "Dot path to the page array inside the hydration payload.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "framework"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "ajax",
+              "type": "string"
+            },
+            "method": {
+              "enum": [
+                "GET",
+                "POST"
+              ],
+              "type": "string"
+            },
+            "path": {
+              "description": "Path resolved against `SiteContext.baseURL`.",
+              "type": "string"
+            },
+            "then": {
+              "$ref": "#/definitions/ExtractionStrategy",
+              "description": "Strategy applied to the response HTML. May itself be `ajax`."
+            }
+          },
+          "required": [
+            "kind",
+            "method",
+            "path",
+            "then"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "Strategy used to extract the ordered image pages of a chapter.\n\nStrategies are tried in order and the first one that returns at least one page wins. A strategy never returns series summaries: search results, details and chapters are extracted from `ThemeSelectors` instead."
+    },
+    "HttpRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "method": {
+          "enum": [
+            "GET",
+            "POST"
+          ],
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "type": "object"
+    },
+    "HttpResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "status": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "url",
+        "headers",
+        "body"
+      ],
+      "type": "object"
+    },
+    "ISODateString": {
+      "description": "ISO 8601 date-time string.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "MangaDetails": {
+      "additionalProperties": false,
+      "properties": {
+        "altTitles": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "artists": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "attribution": {
+          "$ref": "#/definitions/Attribution"
+        },
+        "authors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "contentRating": {
+          "$ref": "#/definitions/ContentRating"
+        },
+        "coverURL": {
+          "$ref": "#/definitions/URLString"
+        },
+        "key": {
+          "description": "Opaque, stable key chosen by the adapter.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/MangaStatus"
+        },
+        "synopsis": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contentRating",
+        "key",
+        "status",
+        "title"
+      ],
+      "type": "object"
+    },
+    "MangaStatus": {
+      "description": "Publication status. Adapters may emit `unknown`; the iOS app maps any unrecognised value to `unknown` as well.",
+      "enum": [
+        "ongoing",
+        "completed",
+        "hiatus",
+        "cancelled",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "MangaSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "coverURL": {
+          "$ref": "#/definitions/URLString"
+        },
+        "key": {
+          "description": "Opaque, stable key chosen by the adapter.",
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "title"
+      ],
+      "type": "object"
+    },
+    "MangaSummaryPage": {
+      "$ref": "#/definitions/PagedResult%3CMangaSummary%3E",
+      "description": "Concrete alias so the JSON Schema gets a named definition for fixtures."
+    },
+    "Page": {
+      "additionalProperties": false,
+      "properties": {
+        "headers": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "imageURL": {
+          "$ref": "#/definitions/URLString"
+        },
+        "index": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "index",
+        "imageURL"
+      ],
+      "type": "object"
+    },
+    "PagedResult<MangaSummary>": {
+      "additionalProperties": false,
+      "properties": {
+        "hasNextPage": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/definitions/MangaSummary"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "items",
+        "hasNextPage"
+      ],
+      "type": "object"
+    },
+    "PagesConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "strategies": {
+          "description": "Tried in order; the first non-empty page list wins.",
+          "items": {
+            "$ref": "#/definitions/ExtractionStrategy"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "strategies"
+      ],
+      "type": "object"
+    },
+    "RepositoryIndex": {
+      "additionalProperties": false,
+      "properties": {
+        "extensions": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "apiVersion": {
+                "$ref": "#/definitions/ApiVersion"
+              },
+              "bundleSignature": {
+                "description": "Ed25519 signature of the bundle, base64.",
+                "pattern": "^[A-Za-z0-9+/]+={0,2}$",
+                "type": "string"
+              },
+              "bundleURL": {
+                "description": "Bundle location relative to the repository index.",
+                "format": "uri-reference",
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "sha256": {
+                "description": "SHA-256 of the bundle, lowercase hexadecimal.",
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version",
+              "apiVersion",
+              "bundleURL",
+              "sha256",
+              "bundleSignature"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "formatVersion": {
+          "const": 1,
+          "description": "Repository index format version, independent from `apiVersion`.",
+          "type": "number"
+        },
+        "name": {
+          "type": "string"
+        },
+        "publicKey": {
+          "description": "Ed25519 public key, formatted as `ed25519:BASE64`.",
+          "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "formatVersion",
+        "name",
+        "publicKey",
+        "extensions"
+      ],
+      "type": "object"
+    },
+    "SearchQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "filters": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "page": {
+          "type": "number"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "page"
+      ],
+      "type": "object"
+    },
+    "SiteContext": {
+      "additionalProperties": false,
+      "description": "The site is always chosen by the user, never by the adapter.",
+      "properties": {
+        "baseURL": {
+          "type": "string"
+        },
+        "overrides": {
+          "$ref": "#/definitions/ThemeSelectorsOverrides"
+        },
+        "siteName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "baseURL",
+        "siteName",
+        "overrides"
+      ],
+      "type": "object"
+    },
+    "ThemeAdapter": {
+      "additionalProperties": false,
+      "properties": {
+        "detectionSignature": {
+          "$ref": "#/definitions/ThemeSignature"
+        },
+        "hooks": {
+          "$ref": "#/definitions/ThemeHooks",
+          "description": "Executable escape hatch for edge cases. Hooks live only in the bundle; they are not serialised into JSON."
+        },
+        "id": {
+          "description": "For example: \"theme.example\".",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "selectors": {
+          "$ref": "#/definitions/ThemeSelectors"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "detectionSignature",
+        "selectors"
+      ],
+      "type": "object"
+    },
+    "ThemeHooks": {
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "ThemeSelectors": {
+      "additionalProperties": false,
+      "properties": {
+        "attribution": {
+          "additionalProperties": false,
+          "properties": {
+            "credits": {
+              "type": "string"
+            },
+            "logo": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "chapters": {
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "item": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            },
+            "order": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "item",
+            "link",
+            "order"
+          ],
+          "type": "object"
+        },
+        "details": {
+          "additionalProperties": false,
+          "properties": {
+            "altTitles": {
+              "type": "string"
+            },
+            "artists": {
+              "type": "string"
+            },
+            "authors": {
+              "type": "string"
+            },
+            "contentRating": {
+              "description": "Text normalised by the runtime into `ContentRating`.",
+              "type": "string"
+            },
+            "cover": {
+              "type": "string"
+            },
+            "status": {
+              "description": "Text normalised by the runtime into `MangaStatus`.",
+              "type": "string"
+            },
+            "synopsis": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "title"
+          ],
+          "type": "object"
+        },
+        "pages": {
+          "$ref": "#/definitions/PagesConfig"
+        },
+        "search": {
+          "additionalProperties": false,
+          "properties": {
+            "cover": {
+              "type": "string"
+            },
+            "item": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            },
+            "nextPage": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "item",
+            "title",
+            "link"
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "search",
+        "details",
+        "chapters",
+        "pages"
+      ],
+      "type": "object"
+    },
+    "ThemeSelectorsOverrides": {
+      "additionalProperties": false,
+      "description": "Field-by-field overrides supplied by the user for one site. Unlike a shallow `Partial`, nested selector groups may contain only the fields that actually change.",
+      "properties": {
+        "attribution": {
+          "additionalProperties": false,
+          "properties": {
+            "credits": {
+              "type": "string"
+            },
+            "logo": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "chapters": {
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "item": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            },
+            "order": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "details": {
+          "additionalProperties": false,
+          "properties": {
+            "altTitles": {
+              "type": "string"
+            },
+            "artists": {
+              "type": "string"
+            },
+            "authors": {
+              "type": "string"
+            },
+            "contentRating": {
+              "description": "Text normalised by the runtime into `ContentRating`.",
+              "type": "string"
+            },
+            "cover": {
+              "type": "string"
+            },
+            "status": {
+              "description": "Text normalised by the runtime into `MangaStatus`.",
+              "type": "string"
+            },
+            "synopsis": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "pages": {
+          "additionalProperties": false,
+          "properties": {
+            "strategies": {
+              "items": {
+                "$ref": "#/definitions/ExtractionStrategy"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "search": {
+          "additionalProperties": false,
+          "properties": {
+            "cover": {
+              "type": "string"
+            },
+            "item": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            },
+            "nextPage": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "ThemeSignature": {
+      "additionalProperties": false,
+      "description": "Theme detection signature. Scoring is done by the host:\n- metaGenerator match: +3\n- each matching selector: +2\n- each matching scriptSrc regex: +1\n- each probePath returning 2xx: +3 The theme is detected when the total score is at least `minScore`.",
+      "properties": {
+        "metaGenerator": {
+          "description": "Regex matched against `<meta name=\"generator\">`.",
+          "type": "string"
+        },
+        "minScore": {
+          "type": "number"
+        },
+        "probePaths": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "scriptSrc": {
+          "description": "Regexes matched against script `src` attributes.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "selectors": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "minScore"
+      ],
+      "type": "object"
+    },
+    "URLString": {
+      "description": "Absolute URL, or URL relative to the site `baseURL`.",
+      "format": "uri-reference",
+      "type": "string"
+    },
+    "defineTheme": {
+      "$comment": "(adapter: ThemeAdapter) => ThemeAdapter & { apiVersion: ApiVersion }",
+      "properties": {
+        "namedArgs": {
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {
+              "$ref": "#/definitions/ThemeAdapter"
+            }
+          },
+          "required": [
+            "adapter"
+          ],
+          "type": "object"
+        }
+      },
+      "type": "object"
+    }
+  }
+}
