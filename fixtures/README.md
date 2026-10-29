@@ -1,7 +1,7 @@
 # Canonical fixtures
 
 Hand-written JSON examples of every contract entity, organized by
-`apiVersion` (e.g. `v2/`).
+`apiVersion` (e.g. `v1/`).
 
 They are published with each SDK release and decoded by the iOS app's
 `ContractTests`, guaranteeing that TypeScript output and Swift DTOs stay in sync.
