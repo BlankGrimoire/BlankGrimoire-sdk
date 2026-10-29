@@ -11,6 +11,15 @@ import {
 } from './prelude.js';
 import { extract, type ExtractionResult, type ExtractOptions } from './engine.js';
 import { extractCss, type CssResult } from './css.js';
+import {
+  extractScriptJSON,
+  type ScriptJSONStrategy,
+  extractHydration,
+  type HydrationStrategy,
+  extractAjax,
+  type AjaxStrategy,
+  type AjaxResult,
+} from './strategies.js';
 
 export {
   __apiVersion,
@@ -22,5 +31,18 @@ export {
   console,
   extract,
   extractCss,
+  extractScriptJSON,
+  extractHydration,
+  extractAjax,
 };
-export type { HttpRequest, HttpResponse, ExtractionResult, ExtractOptions, CssResult };
+export type {
+  HttpRequest,
+  HttpResponse,
+  ExtractionResult,
+  ExtractOptions,
+  CssResult,
+  ScriptJSONStrategy,
+  HydrationStrategy,
+  AjaxStrategy,
+  AjaxResult,
+};

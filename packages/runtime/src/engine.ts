@@ -1,11 +1,70 @@
 import type { ThemeSelectors } from '@blankgrimoire/types';
 import { extractCss, type CssResult } from './css.js';
+import { extractScriptJSON, type ScriptJSONStrategy } from './strategies.js';
+import { extractHydration, type HydrationStrategy } from './strategies.js';
+import { extractAjax, type AjaxStrategy } from './strategies.js';
 
 export type ExtractionResult = CssResult;
+
+export interface ThemeHooksLike {
+  search?: (
+    ctx: SiteContextLike,
+    q: { text?: string; page: number; filters?: Record<string, string> },
+  ) => Promise<{ items: MangaSummaryLike[]; hasNextPage: boolean }>;
+  getMangaDetails?: (ctx: SiteContextLike, key: string) => Promise<MangaDetailsLike>;
+  getChapters?: (ctx: SiteContextLike, key: string) => Promise<ChapterLike[]>;
+  getPages?: (
+    ctx: SiteContextLike,
+    mangaKey: string,
+    chapterKey: string,
+  ) => Promise<PageLike[]>;
+}
+
+export interface MangaSummaryLike {
+  key: string;
+  title: string;
+  coverURL?: string;
+}
+
+export interface MangaDetailsLike {
+  key: string;
+  title: string;
+  coverURL?: string;
+  altTitles?: string[];
+  authors?: string[];
+  artists?: string[];
+  synopsis?: string;
+  tags?: string[];
+  status: string;
+  contentRating: string;
+  attribution?: {
+    siteName: string;
+    siteURL: string;
+    logoURL?: string;
+    credits?: string;
+  };
+}
+
+export interface ChapterLike {
+  key: string;
+  title?: string;
+  number?: number;
+  volume?: number;
+  language?: string;
+  publishedAt?: string;
+  group?: string;
+}
+
+export interface PageLike {
+  index: number;
+  imageURL: string;
+  headers?: Record<string, string>;
+}
 
 export interface ExtractOptions {
   strategies: Array<{ kind: string }>;
   context: SiteContextLike;
+  hooks?: ThemeHooksLike;
 }
 
 export interface SiteContextLike {
@@ -29,10 +88,10 @@ function resolveSelectors(base: ThemeSelectors, overrides: Partial<ThemeSelector
 }
 
 /** Run extraction strategies in order; first non-empty result wins. */
-export function extract(
+export async function extract(
   options: ExtractOptions,
   document: Document,
-): ExtractionResult {
+): Promise<ExtractionResult | null> {
   const selectors = resolveSelectors(options.context.selectors, options.context.overrides ?? {});
   const strategies =
     options.context.overrides?.pages?.strategies ??
@@ -40,7 +99,7 @@ export function extract(
     selectors.pages.strategies;
 
   for (const strategy of strategies) {
-    const result = runStrategy(strategy, document, selectors);
+    const result = await runStrategy(strategy, document, selectors, options.context);
     if (result) {
       return result;
     }
@@ -48,13 +107,22 @@ export function extract(
   return null;
 }
 
-function runStrategy(
+async function runStrategy(
   strategy: { kind: string },
   document: Document,
   selectors: ThemeSelectors,
-): ExtractionResult {
-  if (strategy.kind === 'css') {
-    return extractCss(strategy as { kind: 'css'; image: string; srcAttributes: string[] }, document, selectors);
+  context: SiteContextLike,
+): Promise<ExtractionResult | null> {
+  switch (strategy.kind) {
+    case 'css':
+      return extractCss(strategy as { kind: 'css'; image: string; srcAttributes: string[] }, document, selectors);
+    case 'scriptJSON':
+      return extractScriptJSON(strategy as ScriptJSONStrategy, document);
+    case 'hydration':
+      return extractHydration(strategy as HydrationStrategy, globalThis as unknown as Window & typeof globalThis);
+    case 'ajax':
+      return extractAjax(strategy as AjaxStrategy, { baseURL: context.baseURL }, document);
+    default:
+      return null;
   }
-  return null;
 }

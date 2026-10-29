@@ -50,22 +50,22 @@ const context = {
 };
 
 describe('extract', () => {
-  it('returns null when no strategy matches', () => {
+  it('returns null when no strategy matches', async () => {
     const doc = makeDocument([
       createElement('p', null, {}),
     ]);
-    const result = extract(
+    const result = await extract(
       { strategies: [{ kind: 'css', image: '.missing', srcAttributes: ['src'] }], context },
       doc,
     );
     expect(result).toBe(null);
   });
 
-  it('returns first non-empty result', () => {
+  it('returns first non-empty result', async () => {
     const doc = makeDocument([
       createElement('img', null, { src: 'a.jpg' }),
     ]);
-    const result = extract(
+    const result = await extract(
       {
         strategies: [
           { kind: 'css', image: '.nonexistent', srcAttributes: ['src'] },
@@ -83,7 +83,7 @@ describe('extract', () => {
     }
   });
 
-  it('applies user overrides to selectors', () => {
+  it('applies user overrides to selectors', async () => {
     const doc = makeDocument([
       createElement('img', null, { 'data-src': 'override.jpg' }),
     ]);
@@ -93,7 +93,7 @@ describe('extract', () => {
         pages: { strategies: [{ kind: 'css', image: 'img', srcAttributes: ['data-src'] }] },
       },
     };
-    const result = extract(
+    const result = await extract(
       {
         strategies: [{ kind: 'css', image: 'img', srcAttributes: ['src'] }],
         context: overriddenContext,
