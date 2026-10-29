@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 import http from 'http';
 
 type RouteHandler = (req: http.IncomingMessage) => Promise<{
@@ -7,8 +9,8 @@ type RouteHandler = (req: http.IncomingMessage) => Promise<{
 }>;
 
 /**
- * Mock server HTTP su 127.0.0.1 (loopback), usato dai test per simulare
- * risposte di siti senza rete reale.
+ * HTTP mock server bound to 127.0.0.1 (loopback). Tests use it to simulate
+ * site responses without any real network access.
  */
 export class MockServer {
   private server: http.Server;
@@ -26,14 +28,14 @@ export class MockServer {
         return;
       }
       const result = handler(req);
-      Promise.resolve(result).then((r) => {
-        res.writeHead(r.status, r.headers);
-        res.end(r.body);
+      Promise.resolve(result).then((response) => {
+        res.writeHead(response.status, response.headers);
+        res.end(response.body);
       });
     });
   }
 
-  /** Registra un handler per un path (il method non è filtrato qui). */
+  /** Register a handler for a path. The method is not filtered here. */
   register(path: string, handler: RouteHandler): void {
     this.handlers.set(path, handler);
   }
@@ -51,9 +53,12 @@ export class MockServer {
 
   async stop(): Promise<void> {
     await new Promise<void>((resolve, reject) => {
-      this.server.close((err: Error | null) => {
-        if (err) reject(err);
-        else resolve();
+      this.server.close((error: Error | null) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve();
+        }
       });
     });
     this.started = false;

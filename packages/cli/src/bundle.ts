@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: MIT
+
 import { build } from 'esbuild';
-import fs from 'node:fs';
 import path from 'node:path';
 
 export type BuildOptions = {

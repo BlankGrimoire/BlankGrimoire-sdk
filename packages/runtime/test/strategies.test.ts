@@ -1,217 +1,246 @@
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-// @ts-ignore - jsdom has no bundled type declarations; imported for DOM parsing in tests
-import { JSDOM } from 'jsdom';
-import {
-  extractScriptJSON,
-  extractHydration,
-  extractAjax,
-} from '../src/strategies.js';
-import type { ExtractionStrategy } from '@blankgrimoire/types';
+// SPDX-License-Identifier: MIT
 
-function makeDocument(html: string): Document {
-  const dom = new JSDOM(html);
-  return dom.window.document;
+import { describe, expect, it } from 'vitest';
+// @ts-ignore - jsdom has no bundled type declarations
+import { JSDOM } from 'jsdom';
+import type { Page } from '@blankgrimoire/types';
+import {
+  extractAjax,
+  extractHydration,
+  extractScriptJSON,
+  parseJSONText,
+  readPath,
+  toPages,
+} from '../src/strategies.js';
+import type { DocumentLike } from '../src/dom.js';
+
+function makeDocument(html: string): DocumentLike {
+  return new JSDOM(html).window.document as unknown as DocumentLike;
 }
 
+describe('parseJSONText', () => {
+  it('parses wrapped payloads with nested arrays', () => {
+    expect(parseJSONText('window.__DATA__ = [[1, 2], [3]];')).toEqual([
+      [1, 2],
+      [3],
+    ]);
+  });
+
+  it('parses plain JSON and ignores malformed wrappers', () => {
+    expect(parseJSONText('{"pages":["/001.jpg"]}')).toEqual({
+      pages: ['/001.jpg'],
+    });
+    expect(parseJSONText('window.__DATA__ = {broken')).toBeUndefined();
+  });
+});
+
+describe('readPath', () => {
+  it('supports dot and bracket paths', () => {
+    const value = { props: { pageProps: { pages: [{ url: '/001.jpg' }] } } };
+    expect(readPath(value, 'props.pageProps.pages[0].url')).toBe('/001.jpg');
+  });
+
+  it('returns undefined for missing paths', () => {
+    expect(readPath({ a: 1 }, 'a.b.c')).toBeUndefined();
+  });
+});
+
+describe('toPages', () => {
+  it('accepts strings and page-like objects', () => {
+    const pages = toPages(
+      ['/001.jpg', { imageURL: '/002.jpg' }, { url: '/003.jpg' }],
+      'https://example.org/chapter/',
+    );
+    expect(pages.map((page) => page.imageURL)).toEqual([
+      'https://example.org/001.jpg',
+      'https://example.org/002.jpg',
+      'https://example.org/003.jpg',
+    ]);
+  });
+});
+
 describe('extractScriptJSON', () => {
-  it('extracts JSON from script tag matching pattern', () => {
-    const doc = makeDocument(
-      '<html><body><script src="/assets/app.js">' +
-        JSON.stringify({ pages: [{ key: 'p1', title: 'Page 1' }] }) +
-        '</script></body></html>',
+  it('parses inline JSON and resolves page URLs', async () => {
+    const document = makeDocument(
+      `<html><body><script>window.__PAGES__ = ${JSON.stringify({
+        pages: ['/001.jpg', '/002.jpg'],
+      })}</script></body></html>`,
     );
-    const result = extractScriptJSON(
-      { kind: 'scriptJSON', pattern: 'app\\.js', path: 'pages.0' },
-      doc,
+    const pages = await extractScriptJSON(
+      { kind: 'scriptJSON', pattern: '__PAGES__', path: 'pages' },
+      document,
+      'https://example.org/chapter/',
     );
-    expect(result).not.toBe(null);
-    if (result && result.kind === 'summary') {
-      expect(result.data.key).toBe('p1');
-      expect(result.data.title).toBe('Page 1');
-    } else {
-      throw new Error('unexpected result shape');
-    }
+    expect(pages.map((page) => page.imageURL)).toEqual([
+      'https://example.org/001.jpg',
+      'https://example.org/002.jpg',
+    ]);
   });
 
-  it('returns null when no script matches pattern', () => {
-    const doc = makeDocument(
-      '<html><body><script src="/assets/other.js">"{\"foo\":\"bar\"}"</script></body></html>',
+  it('continues after malformed JSON and unresolved paths', async () => {
+    const document = makeDocument(
+      '<html><body>' +
+        '<script>window.__PAGES__ = {broken</script>' +
+        `<script>window.__PAGES__ = ${JSON.stringify({ other: [] })}</script>` +
+        `<script>window.__PAGES__ = ${JSON.stringify({ pages: ['/003.jpg'] })}</script>` +
+        '</body></html>',
     );
-    const result = extractScriptJSON(
-      { kind: 'scriptJSON', pattern: 'app\\.js', path: 'pages.0' },
-      doc,
+    const pages = await extractScriptJSON(
+      { kind: 'scriptJSON', pattern: '__PAGES__', path: 'pages' },
+      document,
+      'https://example.org/',
     );
-    expect(result).toBe(null);
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/003.jpg' }]);
   });
 
-  it('returns null when path does not resolve', () => {
-    const doc = makeDocument(
-      '<html><body><script src="/assets/app.js">' +
-        JSON.stringify({ foo: 'bar' }) +
-        '</script></body></html>',
+  it('fetches a matching external script through the native bridge', async () => {
+    const document = makeDocument(
+      '<html><body><script src="/assets/app.js"></script></body></html>',
     );
-    const result = extractScriptJSON(
-      { kind: 'scriptJSON', pattern: 'app\\.js', path: 'pages.0' },
-      doc,
+    (globalThis as unknown as { __native?: Record<string, unknown> }).__native = {
+      request: (request: { url: string }) => ({
+        status: 200,
+        url: request.url,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ pages: ['/external.jpg'] }),
+      }),
+    };
+
+    const pages = await extractScriptJSON(
+      { kind: 'scriptJSON', pattern: 'app\\.js', path: 'pages' },
+      document,
+      'https://example.org/',
     );
-    expect(result).toBe(null);
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/external.jpg' }]);
+    delete (globalThis as unknown as { __native?: unknown }).__native;
+  });
+
+  it('returns an empty list when a matching script has no usable payload', async () => {
+    const document = makeDocument(
+      '<html><body><script>window.__PAGES__ = "not-json"</script></body></html>',
+    );
+    expect(
+      await extractScriptJSON(
+        { kind: 'scriptJSON', pattern: '__PAGES__', path: 'pages' },
+        document,
+        'https://example.org/',
+      ),
+    ).toEqual([]);
   });
 });
 
 describe('extractHydration', () => {
-  const originalGlobalThis = globalThis;
-
-  beforeEach(() => {
-    (globalThis as unknown as { __NEXT_DATA__?: unknown }).__NEXT_DATA__ =
-      undefined;
-    (globalThis as unknown as { __NUXT__?: unknown }).__NUXT__ = undefined;
-  });
-
-  afterEach(() => {
-    (globalThis as unknown as { __NEXT_DATA__?: unknown }).__NEXT_DATA__ =
-      undefined;
-    (globalThis as unknown as { __NUXT__?: unknown }).__NUXT__ = undefined;
-  });
-
-  it('extracts from Next.js __NEXT_DATA__', () => {
-    (globalThis as unknown as { __NEXT_DATA__?: unknown }).__NEXT_DATA__ = {
-      page: { key: 'next-key', title: 'Next Page' },
-    };
-    const result = extractHydration(
-      { kind: 'hydration', framework: 'next', path: 'page' },
-      globalThis as unknown as Window & typeof globalThis,
+  it('reads Next.js data from a script tag', () => {
+    const document = makeDocument(
+      `<html><body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: { pageProps: { pages: ['/next.jpg'] } },
+      })}</script></body></html>`,
     );
-    expect(result).not.toBe(null);
-    if (result && result.kind === 'summary') {
-      expect(result.data.key).toBe('next-key');
-      expect(result.data.title).toBe('Next Page');
-    } else {
-      throw new Error('unexpected result shape');
-    }
+    const pages = extractHydration(
+      { kind: 'hydration', framework: 'next', path: 'props.pageProps.pages' },
+      document,
+      'https://example.org/',
+    );
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/next.jpg' }]);
   });
 
-  it('extracts from Nuxt __NUXT__', () => {
-    (globalThis as unknown as { __NUXT__?: unknown }).__NUXT__ = {
-      data: { key: 'nuxt-key', title: 'Nuxt Page' },
-    };
-    const result = extractHydration(
-      { kind: 'hydration', framework: 'nuxt', path: 'data' },
-      globalThis as unknown as Window & typeof globalThis,
+  it('reads Nuxt data from a window payload', () => {
+    const document = makeDocument('<html><body></body></html>');
+    const pages = extractHydration(
+      { kind: 'hydration', framework: 'nuxt', path: 'data.pages' },
+      document,
+      'https://example.org/',
+      { __NUXT__: { data: { pages: ['/nuxt.jpg'] } } },
     );
-    expect(result).not.toBe(null);
-    if (result && result.kind === 'summary') {
-      expect(result.data.key).toBe('nuxt-key');
-      expect(result.data.title).toBe('Nuxt Page');
-    } else {
-      throw new Error('unexpected result shape');
-    }
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/nuxt.jpg' }]);
   });
 
-  it('returns null when no hydration payload', () => {
-    const result = extractHydration(
-      { kind: 'hydration', framework: 'next', path: 'page' },
-      globalThis as unknown as Window & typeof globalThis,
-    );
-    expect(result).toBe(null);
+  it('returns an empty list without a payload', () => {
+    expect(
+      extractHydration(
+        { kind: 'hydration', framework: 'next' },
+        makeDocument('<html></html>'),
+        'https://example.org/',
+      ),
+    ).toEqual([]);
   });
 });
 
 describe('extractAjax', () => {
-  const originalNative = (globalThis as unknown as {
-    __native?: Record<string, (...args: unknown[]) => unknown>;
-  }).__native;
-  let capturedRequest: { url: string; method: string; body?: string } | null =
-    null;
-
-  beforeEach(() => {
-    capturedRequest = null;
-    (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> })
-      .__native = {
-        request: (...args: unknown[]) => {
-          const req = args[0] as { url: string; method?: string; body?: string };
-          capturedRequest = {
-            url: req.url,
-            method: req.method ?? 'GET',
-            ...(req.body !== undefined ? { body: req.body } : {}),
-          };
-          return {
-            status: 200,
-            url: req.url,
-            headers: { 'content-type': 'text/html' },
-            body:
-              '<html><body><div class="reader"><img src="https://example.org/ajax.jpg" /></div></body></html>',
-          };
-        },
-      };
-  });
-
-  it('makes HTTP request and applies css strategy to response', async () => {
-    const dom = new JSDOM('<html><body></body></html>');
-    const doc = dom.window.document;
-
-    const result = await extractAjax(
+  it('rejects non-2xx responses', async () => {
+    (globalThis as unknown as { __native?: Record<string, unknown> }).__native = {
+      request: () => ({ status: 404, url: 'https://example.org/api', headers: {}, body: '' }),
+    };
+    const pages = await extractAjax(
       {
         kind: 'ajax',
         method: 'GET',
-        path: '/api/page',
+        path: '/api',
+        then: { kind: 'css', image: 'img', srcAttributes: ['src'] },
+      },
+      makeDocument('<html></html>'),
+      { baseURL: 'https://example.org/' },
+    );
+    expect(pages).toEqual([]);
+    delete (globalThis as unknown as { __native?: unknown }).__native;
+  });
+
+  it('parses the response and applies a nested strategy', async () => {
+    (globalThis as unknown as { __native?: Record<string, unknown> }).__native = {
+      request: (request: { url: string }) => ({
+        status: 200,
+        url: request.url,
+        headers: { 'content-type': 'text/html' },
+        body: '<html><body><div class="reader"><img src="/ajax.jpg" /></div></body></html>',
+      }),
+    };
+    const pages = await extractAjax(
+      {
+        kind: 'ajax',
+        method: 'GET',
+        path: '/api',
         then: { kind: 'css', image: '.reader img', srcAttributes: ['src'] },
       },
-      { baseURL: 'https://example.org/' },
-      doc,
+      makeDocument('<html></html>'),
+      {
+        baseURL: 'https://example.org/',
+        parseHTML: (html) => makeDocument(html),
+      },
     );
-
-    expect(capturedRequest).not.toBe(null);
-    expect(capturedRequest!.url).toBe('https://example.org/api/page');
-    expect(capturedRequest!.method).toBe('GET');
-
-    expect(result).not.toBe(null);
-    if (result && result.kind === 'summary') {
-      expect(result.data.key).toBe('https://example.org/ajax.jpg');
-    } else {
-      throw new Error('unexpected result shape');
-    }
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/ajax.jpg' }]);
+    delete (globalThis as unknown as { __native?: unknown }).__native;
   });
 
-  it('resolves relative path against baseURL', async () => {
-    const dom = new JSDOM('<html><body></body></html>');
-    const doc = dom.window.document;
-
-    await extractAjax(
+  it('supports recursive ajax strategies up to the depth limit', async () => {
+    let requests = 0;
+    (globalThis as unknown as { __native?: Record<string, unknown> }).__native = {
+      request: (request: { url: string }) => {
+        requests += 1;
+        return {
+          status: 200,
+          url: request.url,
+          headers: {},
+          body: '<html><body><img src="/nested.jpg" /></body></html>',
+        };
+      },
+    };
+    const pages: Page[] = await extractAjax(
       {
         kind: 'ajax',
         method: 'GET',
-        path: '/relative/path',
-        then: { kind: 'css', image: '.x img', srcAttributes: ['src'] },
-      },
-      { baseURL: 'https://example.org/' },
-      doc,
-    );
-
-    expect(capturedRequest!.url).toBe('https://example.org/relative/path');
-  });
-
-  it('returns null when __http fails', async () => {
-    (globalThis as unknown as { __native?: Record<string, (...args: unknown[]) => unknown> })
-      .__native = {
-        request: () => {
-          throw new Error('network error');
+        path: '/one',
+        then: {
+          kind: 'ajax',
+          method: 'GET',
+          path: '/two',
+          then: { kind: 'css', image: 'img', srcAttributes: ['src'] },
         },
-      };
-
-    const dom = new JSDOM('<html><body></body></html>');
-    const doc = dom.window.document;
-
-    const result = await extractAjax(
-      {
-        kind: 'ajax',
-        method: 'GET',
-        path: '/fail',
-        then: { kind: 'css', image: '.x img', srcAttributes: ['src'] },
       },
-      { baseURL: 'https://example.org/' },
-      doc,
+      makeDocument('<html></html>'),
+      { baseURL: 'https://example.org/', parseHTML: (html) => makeDocument(html) },
     );
-
-    expect(result).toBe(null);
+    expect(requests).toBe(2);
+    expect(pages[0]?.imageURL).toBe('https://example.org/nested.jpg');
+    delete (globalThis as unknown as { __native?: unknown }).__native;
   });
 });

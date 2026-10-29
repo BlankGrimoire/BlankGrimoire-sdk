@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 export interface HttpRequest {
   url: string;
   method?: 'GET' | 'POST';

@@ -2,8 +2,8 @@
   "id": "theme.example",
   "name": "Example Theme",
   "version": "1.0.0",
-  "apiVersion": 2,
-  "signature": {
+  "apiVersion": 1,
+  "detectionSignature": {
     "metaGenerator": "^ExampleCMS",
     "selectors": [".example-reader", ".example-chapter-list"],
     "scriptSrc": ["/assets/example-theme\\.js"],

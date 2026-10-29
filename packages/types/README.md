@@ -19,7 +19,7 @@ export default defineTheme({
   id: 'theme.example',
   name: 'Example Theme',
   version: '1.0.0',
-  signature: {
+  detectionSignature: {
     metaGenerator: '^ExampleCMS',
     selectors: ['.example-reader'],
     minScore: 3,
@@ -38,12 +38,15 @@ export default defineTheme({
 });
 ```
 
-`defineTheme` returns the adapter with `apiVersion: 2` attached.
+`defineTheme` returns the adapter with `apiVersion: 1` attached. `API_VERSION`
+is exported as the canonical contract version.
 
 ## Contract rules
 
 - JSON is the only exchange format.
 - Optional fields are omitted, never `null`.
+- `MangaStatus` and `ContentRating` are closed unions that include `unknown`;
+  hosts map any unrecognised value to `unknown`.
 - Any change requires schema regeneration (`pnpm build && pnpm schema`),
   a fixtures update, and the `contract` label. Breaking changes require a major bump.
 

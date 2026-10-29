@@ -1,13 +1,12 @@
+// SPDX-License-Identifier: MIT
+
 // @ts-ignore - jsdom has no bundled type declarations
 import { JSDOM } from 'jsdom';
+import type { HttpRequest } from '@blankgrimoire/types';
+import type { DocumentLike } from '@blankgrimoire/runtime';
 import { isAllowed } from './allowlist.js';
 
-export type NativeRequestOptions = {
-  url: string;
-  method?: 'GET' | 'POST';
-  headers?: Record<string, string>;
-  body?: string;
-};
+export type NativeRequestOptions = HttpRequest;
 
 export type NativeResponse = {
   status: number;
@@ -16,54 +15,79 @@ export type NativeResponse = {
   body: string;
 };
 
-export type NativeParseResult = {
-  querySelector: (selector: string) => Element | null;
-  querySelectorAll: (selector: string) => Element[];
-};
+export type NativeParseResult = DocumentLike;
+
+const MAX_REDIRECTS = 5;
 
 /**
- * Emula il bridge __native esposto dal runtime agli adapter.
- * Tutte le operazioni di rete sono soggette all'host allowlist.
+ * Emulates the `__native` bridge exposed by the runtime to adapters.
+ * Every network operation is subject to the host allowlist, including each
+ * redirect target.
  */
 export class NativeBridge {
-  private timers = new Map<number, { nativeId: any; cb: () => void }>();
+  private timers = new Map<number, { nativeId: ReturnType<typeof setTimeout>; cb: () => void }>();
   private timerIdCounter = 0;
 
-  constructor(private allowedHosts: string[]) {}
+  constructor(private readonly allowedHosts: string[]) {}
 
-  /** Effettua una richiesta HTTP soggetta all'allowlist. */
   async request(options: NativeRequestOptions): Promise<NativeResponse> {
-    if (!isAllowed(options.url, this.allowedHosts)) {
-      throw new Error(`Host not allowed by allowlist: ${options.url}`);
+    let current = options.url;
+    let method = options.method ?? 'GET';
+    let body = options.body;
+
+    for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
+      if (!isAllowed(current, this.allowedHosts)) {
+        throw new Error(`Host not allowed by allowlist: ${current}`);
+      }
+
+      let parsed: URL;
+      try {
+        parsed = new URL(current);
+      } catch {
+        throw new Error(`Invalid request URL: ${current}`);
+      }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error(`Unsupported protocol: ${parsed.protocol}`);
+      }
+
+      const fetchOptions: RequestInit = {
+        method,
+        redirect: 'manual',
+      };
+      if (options.headers) {
+        fetchOptions.headers = options.headers;
+      }
+      if (body !== undefined) {
+        fetchOptions.body = body;
+      }
+
+      const response = await fetch(current, fetchOptions);
+      const location = response.headers.get('location');
+
+      if (response.status >= 300 && response.status < 400 && location) {
+        current = new URL(location, current).toString();
+        if (response.status === 303 || ((response.status === 301 || response.status === 302) && method === 'POST')) {
+          method = 'GET';
+          body = undefined;
+        }
+        continue;
+      }
+
+      const text = await response.text();
+      return {
+        status: response.status,
+        url: response.url || current,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: text,
+      };
     }
-    const fetchOptions: RequestInit = {
-      method: options.method ?? 'GET',
-    };
-    if (options.headers) {
-      fetchOptions.headers = options.headers;
-    }
-    if (options.body !== undefined) {
-      fetchOptions.body = options.body;
-    }
-    const res = await fetch(options.url, fetchOptions);
-    const text = await res.text();
-    return {
-      status: res.status,
-      url: res.url,
-      headers: Object.fromEntries(res.headers.entries()),
-      body: text,
-    };
+
+    throw new Error(`Too many redirects: ${options.url}`);
   }
 
-  /** Parsa una stringa HTML in un oggetto DOM-like. */
   parseHTML(html: string): NativeParseResult {
     const dom = new JSDOM(html);
-    const doc = dom.window.document;
-    return {
-      querySelector: (selector: string) => doc.querySelector(selector),
-      querySelectorAll: (selector: string) =>
-        Array.from(doc.querySelectorAll(selector)),
-    };
+    return dom.window.document as unknown as DocumentLike;
   }
 
   log(...args: unknown[]): void {

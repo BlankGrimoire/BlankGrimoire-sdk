@@ -1,13 +1,25 @@
-/** ISO 8601 date-time string. Decoded with `.iso8601` in Swift. */
+// SPDX-License-Identifier: MIT
+
+/**
+ * ISO 8601 date-time string.
+ * @format date-time
+ */
 export type ISODateString = string;
 
-/** Absolute URL, or URL relative to the site `baseURL`. */
+/**
+ * Absolute URL, or URL relative to the site `baseURL`.
+ * @format uri-reference
+ */
 export type URLString = string;
 
-/** Publication status. Swift maps unknown values to `unknown`. */
+/**
+ * Publication status. Adapters may emit `unknown`; the iOS app maps any
+ * unrecognised value to `unknown` as well.
+ */
 export type MangaStatus = 'ongoing' | 'completed' | 'hiatus' | 'cancelled' | 'unknown';
 
-export type ContentRating = 'safe' | 'suggestive' | 'mature';
+/** Content rating. Adapters emit `unknown` when the site does not expose one. */
+export type ContentRating = 'safe' | 'suggestive' | 'mature' | 'unknown';
 
 export interface Attribution {
   siteName: string;

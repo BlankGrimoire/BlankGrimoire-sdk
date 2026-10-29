@@ -1,19 +1,38 @@
+// SPDX-License-Identifier: MIT
+
 import type { Chapter, MangaDetails, MangaSummary, Page, PagedResult, SearchQuery } from './entities.js';
-import type { PagesConfig } from './strategies.js';
+import type { ExtractionStrategy, PagesConfig } from './strategies.js';
+import { API_VERSION, type ApiVersion } from './version.js';
+
+/**
+ * Field-by-field overrides supplied by the user for one site. Unlike a
+ * shallow `Partial`, nested selector groups may contain only the fields that
+ * actually change.
+ */
+export interface ThemeSelectorsOverrides {
+  search?: Partial<ThemeSelectors['search']>;
+  details?: Partial<ThemeSelectors['details']>;
+  chapters?: Partial<ThemeSelectors['chapters']>;
+  pages?: {
+    strategies?: ExtractionStrategy[];
+  };
+  attribution?: Partial<NonNullable<ThemeSelectors['attribution']>>;
+}
 
 /** The site is always chosen by the user, never by the adapter. */
 export interface SiteContext {
   baseURL: string;
   siteName: string;
-  overrides: Partial<ThemeSelectors>;
+  overrides: ThemeSelectorsOverrides;
 }
 
 /**
- * Theme detection signature. Scoring is done in Swift:
+ * Theme detection signature. Scoring is done by the host:
  * - metaGenerator match: +3
  * - each matching selector: +2
  * - each matching scriptSrc regex: +1
  * - each probePath returning 2xx: +3
+ * The theme is detected when the total score is at least `minScore`.
  */
 export interface ThemeSignature {
   /** Regex matched against `<meta name="generator">`. */
@@ -39,8 +58,13 @@ export interface ThemeSelectors {
     cover?: string;
     synopsis?: string;
     authors?: string;
+    artists?: string;
+    altTitles?: string;
     tags?: string;
+    /** Text normalised by the runtime into `MangaStatus`. */
     status?: string;
+    /** Text normalised by the runtime into `ContentRating`. */
+    contentRating?: string;
   };
   chapters: {
     item: string;
@@ -68,11 +92,15 @@ export interface ThemeAdapter {
   id: string;
   name: string;
   version: string;
-  signature: ThemeSignature;
+  detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
+  /**
+   * Executable escape hatch for edge cases. Hooks live only in the bundle;
+   * they are not serialised into JSON.
+   */
   hooks?: ThemeHooks;
 }
 
-export function defineTheme(adapter: ThemeAdapter): ThemeAdapter & { apiVersion: 1 } {
-  return Object.assign({}, adapter, { apiVersion: 1 as const });
+export function defineTheme(adapter: ThemeAdapter): ThemeAdapter & { apiVersion: ApiVersion } {
+  return Object.assign({}, adapter, { apiVersion: API_VERSION });
 }

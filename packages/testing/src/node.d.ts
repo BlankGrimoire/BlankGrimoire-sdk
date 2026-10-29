@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 declare module 'http' {
   export interface IncomingMessage {
     url?: string;
@@ -22,3 +24,24 @@ declare module 'http' {
     requestListener?: (req: IncomingMessage, res: ServerResponse) => void,
   ): Server;
 }
+
+declare module 'node:fs' {
+  export function readFileSync(path: string | URL, encoding: string): string;
+}
+
+declare module 'node:vm' {
+  export interface Context {
+    [name: string]: unknown;
+  }
+
+  export function createContext(contextObject: object): Context;
+  export function runInContext(
+    code: string,
+    contextObject: object,
+    options?: { filename?: string; timeout?: number },
+  ): unknown;
+}
+
+declare const Buffer: {
+  from(value: string, encoding?: string): { toString(encoding: string): string };
+};

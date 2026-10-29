@@ -3,10 +3,14 @@
   "definitions": {
     "AdapterManifest": {
       "additionalProperties": false,
-      "description": "No baseURL and no domains: hosts come from the user's SiteProfile.",
+      "description": "Adapter manifest published next to the bundle.\n\nThere is no `baseURL` and no domain: hosts come from the user's `SiteProfile`, which is an iOS app concept and not part of this SDK.",
       "properties": {
         "apiVersion": {
-          "type": "number"
+          "$ref": "#/definitions/ApiVersion"
+        },
+        "detectionSignature": {
+          "$ref": "#/definitions/ThemeSignature",
+          "description": "Theme detection signature (not a cryptographic signature)."
         },
         "id": {
           "type": "string"
@@ -15,10 +19,9 @@
           "type": "string"
         },
         "sha256": {
+          "description": "SHA-256 of the bundle, lowercase hexadecimal.",
+          "pattern": "^[a-f0-9]{64}$",
           "type": "string"
-        },
-        "signature": {
-          "$ref": "#/definitions/ThemeSignature"
         },
         "version": {
           "type": "string"
@@ -29,10 +32,15 @@
         "name",
         "version",
         "apiVersion",
-        "signature",
+        "detectionSignature",
         "sha256"
       ],
       "type": "object"
+    },
+    "ApiVersion": {
+      "const": 1,
+      "description": "Literal type of the current adapter API version.",
+      "type": "number"
     },
     "Attribution": {
       "additionalProperties": false,
@@ -88,10 +96,12 @@
       "type": "object"
     },
     "ContentRating": {
+      "description": "Content rating. Adapters emit `unknown` when the site does not expose one.",
       "enum": [
         "safe",
         "suggestive",
-        "mature"
+        "mature",
+        "unknown"
       ],
       "type": "string"
     },
@@ -100,7 +110,15 @@
         {
           "additionalProperties": false,
           "properties": {
+            "headers": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Optional headers attached to every extracted page.",
+              "type": "object"
+            },
             "image": {
+              "description": "Selector matching page images.",
               "type": "string"
             },
             "kind": {
@@ -108,6 +126,7 @@
               "type": "string"
             },
             "srcAttributes": {
+              "description": "Attributes tried in order, e.g. `[\"data-src\", \"src\"]`.",
               "items": {
                 "type": "string"
               },
@@ -125,6 +144,7 @@
           "additionalProperties": false,
           "properties": {
             "base64": {
+              "description": "Decode the script text from base64 before parsing.",
               "type": "boolean"
             },
             "kind": {
@@ -132,9 +152,11 @@
               "type": "string"
             },
             "path": {
+              "description": "Dot path to the page array inside the decoded JSON.",
               "type": "string"
             },
             "pattern": {
+              "description": "Regex matched against inline script text or a script `src`.",
               "type": "string"
             }
           },
@@ -160,6 +182,7 @@
               "type": "string"
             },
             "path": {
+              "description": "Dot path to the page array inside the hydration payload.",
               "type": "string"
             }
           },
@@ -187,10 +210,12 @@
               "type": "string"
             },
             "path": {
+              "description": "Path resolved against `SiteContext.baseURL`.",
               "type": "string"
             },
             "then": {
-              "$ref": "#/definitions/ExtractionStrategy"
+              "$ref": "#/definitions/ExtractionStrategy",
+              "description": "Strategy applied to the response HTML. May itself be `ajax`."
             }
           },
           "required": [
@@ -201,7 +226,8 @@
           ],
           "type": "object"
         }
-      ]
+      ],
+      "description": "Strategy used to extract the ordered image pages of a chapter.\n\nStrategies are tried in order and the first one that returns at least one page wins. A strategy never returns series summaries: search results, details and chapters are extracted from `ThemeSelectors` instead."
     },
     "HttpRequest": {
       "additionalProperties": false,
@@ -259,7 +285,8 @@
       "type": "object"
     },
     "ISODateString": {
-      "description": "ISO 8601 date-time string. Decoded with `.iso8601` in Swift.",
+      "description": "ISO 8601 date-time string.",
+      "format": "date-time",
       "type": "string"
     },
     "MangaDetails": {
@@ -321,7 +348,7 @@
       "type": "object"
     },
     "MangaStatus": {
-      "description": "Publication status. Swift maps unknown values to `unknown`.",
+      "description": "Publication status. Adapters may emit `unknown`; the iOS app maps any unrecognised value to `unknown` as well.",
       "enum": [
         "ongoing",
         "completed",
@@ -400,7 +427,7 @@
       "additionalProperties": false,
       "properties": {
         "strategies": {
-          "description": "Tried in order; the first non-empty result wins.",
+          "description": "Tried in order; the first non-empty page list wins.",
           "items": {
             "$ref": "#/definitions/ExtractionStrategy"
           },
@@ -420,10 +447,16 @@
             "additionalProperties": false,
             "properties": {
               "apiVersion": {
-                "type": "number"
+                "$ref": "#/definitions/ApiVersion"
+              },
+              "bundleSignature": {
+                "description": "Ed25519 signature of the bundle, base64.",
+                "pattern": "^[A-Za-z0-9+/]+={0,2}$",
+                "type": "string"
               },
               "bundleURL": {
-                "description": "Relative to the repository index.",
+                "description": "Bundle location relative to the repository index.",
+                "format": "uri-reference",
                 "type": "string"
               },
               "id": {
@@ -433,9 +466,8 @@
                 "type": "string"
               },
               "sha256": {
-                "type": "string"
-              },
-              "signature": {
+                "description": "SHA-256 of the bundle, lowercase hexadecimal.",
+                "pattern": "^[a-f0-9]{64}$",
                 "type": "string"
               },
               "version": {
@@ -449,7 +481,7 @@
               "apiVersion",
               "bundleURL",
               "sha256",
-              "signature"
+              "bundleSignature"
             ],
             "type": "object"
           },
@@ -457,13 +489,15 @@
         },
         "formatVersion": {
           "const": 1,
+          "description": "Repository index format version, independent from `apiVersion`.",
           "type": "number"
         },
         "name": {
           "type": "string"
         },
         "publicKey": {
-          "description": "Format: \"ed25519:BASE64\".",
+          "description": "Ed25519 public key, formatted as `ed25519:BASE64`.",
+          "pattern": "^ed25519:[A-Za-z0-9+/]+={0,2}$",
           "type": "string"
         }
       },
@@ -504,112 +538,7 @@
           "type": "string"
         },
         "overrides": {
-          "additionalProperties": false,
-          "properties": {
-            "attribution": {
-              "additionalProperties": false,
-              "properties": {
-                "credits": {
-                  "type": "string"
-                },
-                "logo": {
-                  "type": "string"
-                }
-              },
-              "type": "object"
-            },
-            "chapters": {
-              "additionalProperties": false,
-              "properties": {
-                "date": {
-                  "type": "string"
-                },
-                "item": {
-                  "type": "string"
-                },
-                "link": {
-                  "type": "string"
-                },
-                "order": {
-                  "enum": [
-                    "asc",
-                    "desc"
-                  ],
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "item",
-                "link",
-                "order"
-              ],
-              "type": "object"
-            },
-            "details": {
-              "additionalProperties": false,
-              "properties": {
-                "authors": {
-                  "type": "string"
-                },
-                "cover": {
-                  "type": "string"
-                },
-                "status": {
-                  "type": "string"
-                },
-                "synopsis": {
-                  "type": "string"
-                },
-                "tags": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "title"
-              ],
-              "type": "object"
-            },
-            "pages": {
-              "$ref": "#/definitions/PagesConfig"
-            },
-            "search": {
-              "additionalProperties": false,
-              "properties": {
-                "cover": {
-                  "type": "string"
-                },
-                "item": {
-                  "type": "string"
-                },
-                "link": {
-                  "type": "string"
-                },
-                "nextPage": {
-                  "type": "string"
-                },
-                "path": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "path",
-                "item",
-                "title",
-                "link"
-              ],
-              "type": "object"
-            }
-          },
-          "type": "object"
+          "$ref": "#/definitions/ThemeSelectorsOverrides"
         },
         "siteName": {
           "type": "string"
@@ -625,8 +554,12 @@
     "ThemeAdapter": {
       "additionalProperties": false,
       "properties": {
+        "detectionSignature": {
+          "$ref": "#/definitions/ThemeSignature"
+        },
         "hooks": {
-          "$ref": "#/definitions/ThemeHooks"
+          "$ref": "#/definitions/ThemeHooks",
+          "description": "Executable escape hatch for edge cases. Hooks live only in the bundle; they are not serialised into JSON."
         },
         "id": {
           "description": "For example: \"theme.example\".",
@@ -638,9 +571,6 @@
         "selectors": {
           "$ref": "#/definitions/ThemeSelectors"
         },
-        "signature": {
-          "$ref": "#/definitions/ThemeSignature"
-        },
         "version": {
           "type": "string"
         }
@@ -649,7 +579,7 @@
         "id",
         "name",
         "version",
-        "signature",
+        "detectionSignature",
         "selectors"
       ],
       "type": "object"
@@ -706,13 +636,24 @@
         "details": {
           "additionalProperties": false,
           "properties": {
+            "altTitles": {
+              "type": "string"
+            },
+            "artists": {
+              "type": "string"
+            },
             "authors": {
+              "type": "string"
+            },
+            "contentRating": {
+              "description": "Text normalised by the runtime into `ContentRating`.",
               "type": "string"
             },
             "cover": {
               "type": "string"
             },
             "status": {
+              "description": "Text normalised by the runtime into `MangaStatus`.",
               "type": "string"
             },
             "synopsis": {
@@ -772,9 +713,124 @@
       ],
       "type": "object"
     },
+    "ThemeSelectorsOverrides": {
+      "additionalProperties": false,
+      "description": "Field-by-field overrides supplied by the user for one site. Unlike a shallow `Partial`, nested selector groups may contain only the fields that actually change.",
+      "properties": {
+        "attribution": {
+          "additionalProperties": false,
+          "properties": {
+            "credits": {
+              "type": "string"
+            },
+            "logo": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "chapters": {
+          "additionalProperties": false,
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "item": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            },
+            "order": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "details": {
+          "additionalProperties": false,
+          "properties": {
+            "altTitles": {
+              "type": "string"
+            },
+            "artists": {
+              "type": "string"
+            },
+            "authors": {
+              "type": "string"
+            },
+            "contentRating": {
+              "description": "Text normalised by the runtime into `ContentRating`.",
+              "type": "string"
+            },
+            "cover": {
+              "type": "string"
+            },
+            "status": {
+              "description": "Text normalised by the runtime into `MangaStatus`.",
+              "type": "string"
+            },
+            "synopsis": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "pages": {
+          "additionalProperties": false,
+          "properties": {
+            "strategies": {
+              "items": {
+                "$ref": "#/definitions/ExtractionStrategy"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        "search": {
+          "additionalProperties": false,
+          "properties": {
+            "cover": {
+              "type": "string"
+            },
+            "item": {
+              "type": "string"
+            },
+            "link": {
+              "type": "string"
+            },
+            "nextPage": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
     "ThemeSignature": {
       "additionalProperties": false,
-      "description": "Theme detection signature. Scoring is done in Swift:\n- metaGenerator match: +3\n- each matching selector: +2\n- each matching scriptSrc regex: +1\n- each probePath returning 2xx: +3",
+      "description": "Theme detection signature. Scoring is done by the host:\n- metaGenerator match: +3\n- each matching selector: +2\n- each matching scriptSrc regex: +1\n- each probePath returning 2xx: +3 The theme is detected when the total score is at least `minScore`.",
       "properties": {
         "metaGenerator": {
           "description": "Regex matched against `<meta name=\"generator\">`.",
@@ -810,10 +866,11 @@
     },
     "URLString": {
       "description": "Absolute URL, or URL relative to the site `baseURL`.",
+      "format": "uri-reference",
       "type": "string"
     },
     "defineTheme": {
-      "$comment": "(adapter: ThemeAdapter) => ThemeAdapter & { apiVersion: 1 }",
+      "$comment": "(adapter: ThemeAdapter) => ThemeAdapter & { apiVersion: ApiVersion }",
       "properties": {
         "namedArgs": {
           "additionalProperties": false,

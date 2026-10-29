@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -28,8 +28,15 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @blankgrimoire/types build
-      - run: pnpm typecheck
-      - run: pnpm typecheck
+
       - run: pnpm build
+
+      - run: pnpm typecheck
+
       - run: pnpm test
+
+      - name: Check generated schema is up to date
+        run: pnpm schema:check
+
+      - name: Smoke-test the CLI binary
+        run: node packages/cli/dist/cli.js --help
