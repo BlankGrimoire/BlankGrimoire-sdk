@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import {
   API_VERSION,
@@ -5,13 +7,13 @@ import {
   type MangaDetails,
   type MangaSummary,
   type ThemeAdapter,
-} from '../src/index';
+} from '../src/index.js';
 
 const minimal = {
   id: 'theme.example',
   name: 'Example Theme',
   version: '1.0.0',
-  signature: { minScore: 1 },
+  detectionSignature: { minScore: 1 },
   selectors: {
     search: { path: '/search', item: '.result', title: '.title', link: 'a' },
     details: { title: 'h1' },

@@ -1,7 +1,10 @@
+// SPDX-License-Identifier: MIT
+
 import {
   __apiVersion,
-  __invoke,
+  __nativeInvoke,
   __http,
+  __parseHTML,
   setTimeout,
   clearTimeout,
   __timerFire,
@@ -9,40 +12,76 @@ import {
   type HttpRequest,
   type HttpResponse,
 } from './prelude.js';
-import { extract, type ExtractionResult, type ExtractOptions } from './engine.js';
-import { extractCss, type CssResult } from './css.js';
+import {
+  dispatch,
+  extract,
+  extractChapters,
+  extractDetails,
+  extractPages,
+  extractSearch,
+  normalizeContentRating,
+  normalizeStatus,
+  resolveSelectors,
+  type ExtractionResult,
+  type PageKeys,
+  type ThemeRuntimeOptions,
+} from './engine.js';
+import { extractCss, type CssStrategy } from './css.js';
 import {
   extractScriptJSON,
-  type ScriptJSONStrategy,
   extractHydration,
-  type HydrationStrategy,
   extractAjax,
+  parseJSONText,
+  readPath,
+  runStrategy,
+  toPages,
   type AjaxStrategy,
-  type AjaxResult,
+  type HydrationStrategy,
+  type ScriptJSONStrategy,
+  type StrategyEnvironment,
 } from './strategies.js';
+import type { DocumentLike, ElementLike, ParseHTML, WindowLike } from './dom.js';
 
 export {
   __apiVersion,
-  __invoke,
+  __nativeInvoke,
   __http,
+  __parseHTML,
   setTimeout,
   clearTimeout,
   __timerFire,
   console,
+  dispatch,
   extract,
+  extractChapters,
+  extractDetails,
+  extractPages,
+  extractSearch,
+  normalizeContentRating,
+  normalizeStatus,
+  resolveSelectors,
   extractCss,
   extractScriptJSON,
   extractHydration,
   extractAjax,
+  parseJSONText,
+  readPath,
+  runStrategy,
+  toPages,
 };
 export type {
   HttpRequest,
   HttpResponse,
   ExtractionResult,
-  ExtractOptions,
-  CssResult,
+  PageKeys,
+  ThemeRuntimeOptions,
+  CssStrategy,
   ScriptJSONStrategy,
   HydrationStrategy,
   AjaxStrategy,
-  AjaxResult,
+  StrategyEnvironment,
+  DocumentLike,
+  ElementLike,
+  ParseHTML,
+  WindowLike,
 };

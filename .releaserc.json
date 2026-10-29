@@ -13,6 +13,17 @@
         "message": "chore(release): v${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
-    ["@semantic-release/github", { "successComment": false, "failComment": false }]
+    [
+      "@semantic-release/github",
+      {
+        "successComment": false,
+        "failComment": false,
+        "assets": [
+          { "path": "release/runtime.js", "label": "runtime.js" },
+          { "path": "release/schema-v1.json", "label": "schema-v1.json" },
+          { "path": "release/fixtures-v1.tar.gz", "label": "fixtures-v1.tar.gz" }
+        ]
+      }
+    ]
   ]
 }

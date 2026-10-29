@@ -1,78 +1,71 @@
+// SPDX-License-Identifier: MIT
+
 import { describe, expect, it } from 'vitest';
-// @ts-ignore - jsdom has no bundled type declarations; imported for DOM parsing in tests
+// @ts-ignore - jsdom has no bundled type declarations
 import { JSDOM } from 'jsdom';
 import { extractCss } from '../src/css.js';
-import type { ThemeSelectors } from '@blankgrimoire/types';
+import type { DocumentLike } from '../src/dom.js';
 
-function makeDocument(html: string): Document {
-  const dom = new JSDOM(html);
-  return dom.window.document;
+function makeDocument(html: string): DocumentLike {
+  return new JSDOM(html).window.document as unknown as DocumentLike;
 }
 
-const selectors: ThemeSelectors = {
-  search: { path: '/search', item: '.result', title: '.title', link: 'a' },
-  details: { title: 'h1' },
-  chapters: { item: '.chapter', link: 'a', order: 'desc' },
-  pages: {
-    strategies: [{ kind: 'css', image: '.reader img', srcAttributes: ['data-src', 'src'] }],
-  },
-};
-
 describe('extractCss', () => {
-  it('extracts src attribute from matching image', () => {
-    const doc = makeDocument(
-      '<html><body><div class="reader"><img src="https://example.org/page.jpg" /></div></body></html>',
+  it('extracts every page in document order with sequential indexes', () => {
+    const document = makeDocument(
+      '<html><body><div class="reader">' +
+        '<img src="https://example.org/001.jpg" />' +
+        '<img data-src="/002.jpg" src="https://example.org/fallback.jpg" />' +
+        '</div></body></html>',
     );
-    const result = extractCss(
+    const pages = extractCss(
       { kind: 'css', image: '.reader img', srcAttributes: ['data-src', 'src'] },
-      doc,
-      selectors,
+      document,
+      'https://example.org/chapter/',
     );
-    expect(result).not.toBe(null);
-    if (result && result.kind === 'summary') {
-      expect(result.data.key).toBe('https://example.org/page.jpg');
-    } else {
-      throw new Error('unexpected result shape');
-    }
+
+    expect(pages).toEqual([
+      { index: 0, imageURL: 'https://example.org/001.jpg' },
+      { index: 1, imageURL: 'https://example.org/002.jpg' },
+    ]);
   });
 
-  it('falls back to next attribute when first is missing', () => {
-    const dom = new JSDOM(
-      '<html><body><div class="reader"><img data-src="https://example.org/fallback.jpg" /></div></body></html>',
+  it('attaches configured headers to every page', () => {
+    const document = makeDocument('<html><body><img src="/001.jpg" /></body></html>');
+    const pages = extractCss(
+      {
+        kind: 'css',
+        image: 'img',
+        srcAttributes: ['src'],
+        headers: { Referer: 'https://example.org/' },
+      },
+      document,
+      'https://example.org/',
     );
-    const doc = dom.window.document;
-    const result = extractCss(
-      { kind: 'css', image: '.reader img', srcAttributes: ['src', 'data-src'] },
-      doc,
-      selectors,
-    );
-    expect(result).not.toBe(null);
-    if (result && result.kind === 'summary') {
-      expect(result.data.key).toBe('https://example.org/fallback.jpg');
-    } else {
-      throw new Error('unexpected result shape');
-    }
+
+    expect(pages[0]?.headers).toEqual({ Referer: 'https://example.org/' });
   });
 
-  it('returns null when no element matches', () => {
-    const doc = makeDocument('<html><body><p>no image</p></body></html>');
-    const result = extractCss(
-      { kind: 'css', image: '.reader img', srcAttributes: ['src'] },
-      doc,
-      selectors,
-    );
-    expect(result).toBe(null);
+  it('returns an empty list when nothing matches', () => {
+    const document = makeDocument('<html><body><p>no image</p></body></html>');
+    expect(
+      extractCss(
+        { kind: 'css', image: '.reader img', srcAttributes: ['src'] },
+        document,
+        'https://example.org/',
+      ),
+    ).toEqual([]);
   });
 
-  it('returns null when element has no matching attribute', () => {
-    const doc = makeDocument(
-      '<html><body><div class="reader"><img alt="no-src" /></div></body></html>',
+  it('skips elements without any configured attribute', () => {
+    const document = makeDocument(
+      '<html><body><img alt="none" /><img src="/ok.jpg" /></body></html>',
     );
-    const result = extractCss(
-      { kind: 'css', image: '.reader img', srcAttributes: ['src', 'data-src'] },
-      doc,
-      selectors,
+    const pages = extractCss(
+      { kind: 'css', image: 'img', srcAttributes: ['data-src', 'src'] },
+      document,
+      'https://example.org/',
     );
-    expect(result).toBe(null);
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/ok.jpg' }]);
   });
 });
