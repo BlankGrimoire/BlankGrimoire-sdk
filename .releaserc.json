@@ -2,17 +2,24 @@
   "branches": ["main"],
   "tagFormat": "v${version}",
   "plugins": [
-    ["@semantic-release/commit-analyzer", { "preset": "conventionalcommits" }],
+    ["@semantic-release/commit-analyzer", {
+      "preset": "conventionalcommits",
+      "mergeCommitPatterns": ["^feat!.*release v\\d+"]
+    }],
     ["@semantic-release/release-notes-generator", { "preset": "conventionalcommits" }],
     ["@semantic-release/changelog", { "changelogTitle": "# Changelog" }],
     ["@semantic-release/exec", { "prepareCmd": "bash scripts/set-version.sh ${nextRelease.version}" }],
     [
-      "@semantic-release/git",
+      "@semantic-release/github",
       {
-        "assets": ["CHANGELOG.md", "package.json", "packages/*/package.json"],
-        "message": "chore(release): v${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        "successComment": false,
+        "failComment": false,
+        "assets": [
+          { "path": "release/runtime.js", "label": "runtime.js" },
+          { "path": "release/schema-v1.json", "label": "schema-v1.json" },
+          { "path": "release/fixtures-v1.tar.gz", "label": "fixtures-v1.tar.gz" }
+        ]
       }
-    ],
-    ["@semantic-release/github", { "successComment": false, "failComment": false }]
+    ]
   ]
 }
