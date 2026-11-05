@@ -72,8 +72,10 @@ The SDK **major version equals the adapter `apiVersion`** (currently `1`).
 A breaking change in the contract always means a new major.
 
 Each release publishes `runtime.js`, the JSON Schema (`schema/v1.json`) and
-the canonical fixtures (`fixtures/v1/`) as GitHub Release assets; the iOS app
-uses them for contract tests.
+the canonical fixtures (`fixtures/v1/`) as GitHub Release assets. The
+`@blankgrimoire/types`, `@blankgrimoire/runtime`, `@blankgrimoire/testing`, and
+`@blankgrimoire/cli` packages are published to npm with provenance; the iOS
+app uses the release assets for contract tests.
 
 ## License
 
