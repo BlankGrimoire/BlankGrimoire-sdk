@@ -24,5 +24,5 @@ for package in types runtime testing cli; do
   if [[ "${PUBLISH_DRY_RUN:-0}" == "1" ]]; then
     publish_args+=(--dry-run)
   fi
-  npm publish "${publish_args[@]}"
+  npx --yes npm@11.5.1 publish "${publish_args[@]}"
 done
