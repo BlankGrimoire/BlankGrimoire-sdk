@@ -10,7 +10,7 @@
     ["@semantic-release/changelog", { "changelogTitle": "# Changelog" }],
     ["@semantic-release/exec", {
       "prepareCmd": "bash scripts/set-version.sh ${nextRelease.version}",
-      "publishCmd": "pnpm -r publish --access public --no-git-checks"
+      "publishCmd": "bash scripts/publish-packages.sh"
     }],
     [
       "@semantic-release/github",
