@@ -29,9 +29,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+          registry-url: https://registry.npmjs.org
 
       - name: Install npm with Trusted Publishing support
-        run: npm install --global npm@latest
+        run: npm install --global npm@11
 
       - run: pnpm install --frozen-lockfile
 
@@ -59,7 +60,6 @@ jobs:
           GIT_AUTHOR_EMAIL: blankgrimoire.dev@gmail.com
           GIT_COMMITTER_NAME: BlankGrimoire contributors
           GIT_COMMITTER_EMAIL: blankgrimoire.dev@gmail.com
-          NPM_CONFIG_PROVENANCE: true
         run: >-
           npx --yes
           -p semantic-release@24
