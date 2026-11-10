@@ -6,8 +6,13 @@ The JSON Schema is generated from `@blankgrimoire/types` via `ts-json-schema-gen
 
 ```bash
 pnpm schema
-# ts-json-schema-generator -p packages/types/src/index.ts -t '*' -o schema/v1.json --no-type-check
+# pnpm --filter @blankgrimoire/types typecheck
+# ts-json-schema-generator -p packages/types/src/schema.ts -t "*" -o schema/v1.json
 ```
+
+`packages/types/src/schema.ts` is the explicit list of contract roots. It keeps
+runtime helpers, bridge constants, and `defineTheme` out of the published
+schema.
 
 ## Schema Structure
 

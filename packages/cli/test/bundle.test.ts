@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { RUNTIME_GLOBAL_NAME } from '@blankgrimoire/types';
 import { buildBundle } from '../src/bundle.js';
 import { cleanup, makeTempDir } from './helpers.js';
 
@@ -29,7 +30,7 @@ describe('buildBundle', () => {
 
     const content = String(fs.readFileSync(output, 'utf8'));
     expect(output).toBe(path.join(directory, 'bundle.js'));
-    expect(content).toContain('BlankGrimoireRuntime');
+    expect(content).toContain(`var ${RUNTIME_GLOBAL_NAME} =`);
     expect(content).toContain('answer');
   });
 

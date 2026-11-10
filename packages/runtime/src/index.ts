@@ -13,6 +13,7 @@ import {
   type HttpResponse,
 } from './prelude.js';
 import {
+  assertAdapterAPIVersion,
   dispatch,
   extract,
   extractChapters,
@@ -22,6 +23,7 @@ import {
   normalizeContentRating,
   normalizeStatus,
   resolveSelectors,
+  UnsupportedApiVersionError,
   type ExtractionResult,
   type PageKeys,
   type ThemeRuntimeOptions,
@@ -51,6 +53,7 @@ export {
   clearTimeout,
   __timerFire,
   console,
+  assertAdapterAPIVersion,
   dispatch,
   extract,
   extractChapters,
@@ -60,6 +63,7 @@ export {
   normalizeContentRating,
   normalizeStatus,
   resolveSelectors,
+  UnsupportedApiVersionError,
   extractCss,
   extractScriptJSON,
   extractHydration,

@@ -80,6 +80,7 @@ Adapter calls `__native.*` functions exposed by host:
 | `parseHTML(string)` | Returns `DocumentLike` |
 | `log/warn/error(...)` | Logging |
 | `setTimeout(cb, ms)` | Timer (host may schedule natively) |
+| `clearTimeout(handle)` | Cancels a timer scheduled through the host |
 | `__timerFire(id)` | Called by host when native timer fires |
 
 ## Bridge Protocol

@@ -92,6 +92,11 @@ export interface ThemeAdapter {
   id: string;
   name: string;
   version: string;
+  /**
+   * Contract version attached by `defineTheme`. Hosts and the runtime reject
+   * adapters whose value differs from the current `API_VERSION`.
+   */
+  apiVersion?: ApiVersion;
   detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
   /**

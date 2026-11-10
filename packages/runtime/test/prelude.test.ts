@@ -8,6 +8,7 @@ import {
   __parseHTML,
   __timerFire,
   clearTimeout,
+  console as hostConsole,
   setTimeout,
 } from '../src/index.js';
 import type { DocumentLike } from '../src/dom.js';
@@ -101,6 +102,23 @@ describe('__http', () => {
       status: 200,
       body: 'ok',
     });
+  });
+});
+
+describe('console', () => {
+  it('routes log, warn and error to the native host', () => {
+    const log = vi.fn();
+    const warn = vi.fn();
+    const error = vi.fn();
+    NATIVE.__native = { log, warn, error };
+
+    hostConsole.log('log');
+    hostConsole.warn('warn');
+    hostConsole.error('error');
+
+    expect(log).toHaveBeenCalledWith('log');
+    expect(warn).toHaveBeenCalledWith('warn');
+    expect(error).toHaveBeenCalledWith('error');
   });
 });
 

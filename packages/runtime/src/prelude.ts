@@ -1,20 +1,18 @@
 // SPDX-License-Identifier: MIT
 
-import { API_VERSION, type HttpRequest, type HttpResponse } from '@blankgrimoire/types';
+import {
+  API_VERSION,
+  type HttpRequest,
+  type HttpResponse,
+  type NativeBridgeHost,
+} from '@blankgrimoire/types';
 import type { DocumentLike } from './dom.js';
 
 export type { HttpRequest, HttpResponse };
 
 export const __apiVersion = API_VERSION;
 
-interface NativeHost {
-  request?: (request: HttpRequest) => HttpResponse | Promise<HttpResponse>;
-  parseHTML?: (html: string) => DocumentLike;
-  log?: (...args: unknown[]) => void;
-  error?: (...args: unknown[]) => void;
-  warn?: (...args: unknown[]) => void;
-  setTimeout?: (callback: () => void, ms: number) => unknown;
-  clearTimeout?: (handle: unknown) => void;
+interface NativeHost extends NativeBridgeHost<DocumentLike> {
   [name: string]: unknown;
 }
 
