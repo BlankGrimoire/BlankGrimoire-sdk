@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Instructions for AI coding agents working in this repository.
-Human contributors: see `CONTRIBUTING.md` (if present) and the organization's `.github` repository.
+Human contributors: see `CONTRIBUTING.md` and the organization's `.github` repository.
 
 ## Repository Facts
 
@@ -9,6 +9,7 @@ Human contributors: see `CONTRIBUTING.md` (if present) and the organization's `.
 |-----|-------|
 | Repository | BlankGrimoire-sdk |
 | Stack | TypeScript pnpm monorepo: `types`, `runtime`, `testing`, `cli` |
+| Node | `>=22`; `.nvmrc` pins 22 and CI covers 22 and 24 |
 | License | MIT |
 | Source header | `// SPDX-License-Identifier: MIT` at the top of every TS source file |
 | Contact | blankgrimoire.dev@gmail.com |
@@ -36,7 +37,7 @@ Human contributors: see `CONTRIBUTING.md` (if present) and the organization's `.
 
 ## Code Style
 
-`strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, ES2020 target, vitest, esbuild. `packages/types` is the single source of truth for the contract. `API_VERSION` is 1 and the SDK major version equals the adapter `apiVersion`.
+`strict`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess`, ES2020 target, vitest, esbuild. `packages/types` is the single source of truth for the contract. `API_VERSION` is 1, the SDK major version equals the adapter `apiVersion`, and the runtime rejects adapters that do not declare it. `packages/types/src/schema.ts` lists the contract roots used to generate the JSON Schema.
 
 ## Documentation
 
@@ -62,6 +63,8 @@ All SDK implementation details are in `docs/`:
 | Test | `pnpm test` |
 | Regenerate schema | `pnpm schema` |
 | Verify schema is current | `pnpm schema:check` (CI, clean tree) |
+| Build release assets | `pnpm release:assets` |
+| Verify published package manifests | `pnpm publish:check` |
 
 ## Before Handoff
 

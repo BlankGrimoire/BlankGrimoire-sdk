@@ -8,6 +8,8 @@ The contract is the **single source of truth** shared between the TypeScript SDK
 
 - `API_VERSION = 1` (exported from `@blankgrimoire/types`)
 - SDK major version = adapter `apiVersion`
+- `defineTheme` attaches `apiVersion: 1`; the runtime rejects adapters whose
+  `apiVersion` is missing or different
 - Schema file: `schema/v1.json`
 - Fixtures directory: `fixtures/v1/`
 
@@ -99,12 +101,17 @@ interface ThemeAdapter {
   id: string;                    // e.g., "theme.example"
   name: string;                  // Display name
   version: string;               // Semver
+  apiVersion?: 1;                // Attached by defineTheme; required at runtime
   detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
   hooks?: ThemeHooks;            // Optional
 }
 // defineTheme(adapter) attaches { apiVersion: 1 }
 ```
+
+The runtime throws `UnsupportedApiVersionError` when an adapter does not
+declare `apiVersion: 1`. The iOS host performs the same check when it loads a
+bundle and when it decodes a manifest.
 
 ### SiteContext (Host → Adapter)
 ```ts
@@ -114,6 +121,42 @@ interface SiteContext {
   overrides: ThemeSelectorsOverrides; // User customizations
 }
 ```
+
+## Native Bridge (Host ↔ Runtime)
+
+The runtime does not provide `fetch`, timers, or a DOM. The host injects a
+`__native` object into the JavaScriptCore global object. `@blankgrimoire/types`
+exports `NativeBridgeHost` and `NATIVE_BRIDGE_METHODS` so the SDK, tests, and
+host implementations share the same names.
+
+```ts
+interface NativeBridgeHost<TDocument = unknown, TTimerHandle = unknown> {
+  request?: (request: HttpRequest) => HttpResponse | Promise<HttpResponse>;
+  parseHTML?: (html: string) => TDocument;
+  log?: (...args: unknown[]) => void;
+  error?: (...args: unknown[]) => void;
+  warn?: (...args: unknown[]) => void;
+  setTimeout?: (callback: () => void, ms: number) => TTimerHandle;
+  clearTimeout?: (handle: TTimerHandle) => void;
+}
+```
+
+| Member | Required | Contract |
+|--------|----------|----------|
+| `request` | Yes | Performs the HTTP request, enforces the site allowlist, and returns `HttpResponse` (a promise is accepted). |
+| `parseHTML` | Yes | Returns the host document type (`DocumentLike`); iOS uses its HTML parser. |
+| `log` / `warn` / `error` | No | Receive variadic arguments from the runtime `console` shim. |
+| `setTimeout` | No | Schedules `callback` after `ms` and returns a handle passed back to `clearTimeout`. |
+| `clearTimeout` | No | Cancels the handle returned by `setTimeout`. |
+
+When the host implements `setTimeout`, the runtime wraps the callback and
+invokes the host handle. When it does not, the host must call
+`BlankGrimoireRuntime.__timerFire(id)` when the timer expires.
+
+The runtime IIFE exposes the global named by `RUNTIME_GLOBAL_NAME`
+(`BlankGrimoireRuntime`). The iOS host looks up that exact name and then calls
+`dispatch(runtime, method, argsJSON)`. The CLI uses the same constant when it
+bundles an adapter.
 
 ## Entity Types
 
@@ -263,9 +306,10 @@ Strategies tried **in order**; first returning ≥1 page wins.
 
 ## JSON Schema
 
-Generated from types via `ts-json-schema-generator`:
+Generated from the explicit contract roots in
+`packages/types/src/schema.ts` via `ts-json-schema-generator`:
 ```bash
-pnpm schema  # Regenerates schema/v1.json
+pnpm schema  # Regenerates schema/v1.json after type-checking @blankgrimoire/types
 ```
 
 Key schema features:
@@ -309,6 +353,7 @@ Located in `@blankgrimoire/types/test/contract.test.ts`:
 - Rejects unsupported `apiVersion` values
 - Rejects malformed digests/signatures
 - Validates `unknown` fallback for status/rating
+- Runtime tests reject adapters with a missing or different `apiVersion`
 
 ## Changing the Contract
 

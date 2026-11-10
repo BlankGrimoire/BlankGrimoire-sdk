@@ -31,7 +31,7 @@ interface BuildOptions {
 
 async function buildBundle(options: BuildOptions): Promise<string>;
 // Returns output file path
-// Uses esbuild: IIFE, ES2020, browser, globalName: 'BlankGrimoireRuntime'
+// Uses esbuild: IIFE, browser, globalName: RUNTIME_GLOBAL_NAME
 ```
 
 ### Example

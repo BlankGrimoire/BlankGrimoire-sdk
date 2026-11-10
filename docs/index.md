@@ -31,6 +31,10 @@ pnpm typecheck
 
 # Regenerate JSON schema from types
 pnpm schema
+
+# Verify release assets and published manifests
+pnpm release:assets
+pnpm publish:check
 ```
 
 ## Creating a Theme Adapter

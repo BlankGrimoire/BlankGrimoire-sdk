@@ -46,16 +46,20 @@ bundle and published with an Ed25519 signature through a repository index.
 
 - The host parses HTML and exposes the native bridge (`__native.parseHTML`,
   `__native.request`, timers and logging). The runtime never assumes a global
-  DOM and works with a minimal `DocumentLike` interface.
+  DOM and works with a minimal `DocumentLike` interface. The bridge surface is
+  documented in
+  [Contract Overview → Native bridge](docs/contract/overview.md#native-bridge-host--runtime).
 - The host calls `dispatch(runtime, method, argsJSON)` and receives a JSON
   string. Methods: `search`, `details`, `chapters`, `pages`.
 - `@blankgrimoire/runtime` ships as ESM for Node tooling and as
   `dist/runtime.js`, an IIFE exposing the `BlankGrimoireRuntime` global for
-  JavaScriptCore.
+  JavaScriptCore. The name is shared through `RUNTIME_GLOBAL_NAME` and covered
+  by a test.
 
 ## Development
 
-Requirements: Node 22 (`.nvmrc`) and pnpm 9.
+Requirements: Node 22 or newer (`.nvmrc` pins 22; CI covers 22 and 24) and
+pnpm 9.
 
 ```bash
 pnpm install
@@ -64,18 +68,33 @@ pnpm typecheck
 pnpm test
 pnpm schema        # regenerate schema/v1.json from @blankgrimoire/types
 pnpm schema:check  # CI: fail if the committed schema is stale
+pnpm release:assets   # build release/runtime.js, schema and fixtures archive
+pnpm publish:check    # pack every package and verify its published manifest
 ```
+
+`pnpm schema` type-checks `@blankgrimoire/types` first and generates the
+schema from the explicit contract roots in `packages/types/src/schema.ts`.
 
 ## Versioning
 
 The SDK **major version equals the adapter `apiVersion`** (currently `1`).
 A breaking change in the contract always means a new major.
 
+The package version is owned by semantic-release: the release job calculates
+the version from Conventional Commits, updates the root and package
+`package.json` files, commits them with `@semantic-release/git`, and creates
+the tag. Never bump versions or edit `CHANGELOG.md` by hand. The current
+published version is `1.0.1`.
+
 Each release publishes `runtime.js`, the JSON Schema (`schema/v1.json`) and
-the canonical fixtures (`fixtures/v1/`) as GitHub Release assets. The
+the canonical fixtures (`fixtures/v1/`) as GitHub Release assets. The assets
+are produced by `scripts/release-assets.sh`, which fails when a file is
+missing and verifies the `v1/<fixture>.json` layout with `tar -tzf`. The
 `@blankgrimoire/types`, `@blankgrimoire/runtime`, `@blankgrimoire/testing`, and
-`@blankgrimoire/cli` packages are published to npm with provenance; the iOS
-app uses the release assets for contract tests.
+`@blankgrimoire/cli` packages are published to npm with provenance;
+`scripts/publish-packages.sh` rejects packed manifests that still contain
+`workspace:` ranges. The iOS CI runs the ReaderCore contract tests against
+vendored assets verified by `make verify-sdk`.
 
 ## License
 
