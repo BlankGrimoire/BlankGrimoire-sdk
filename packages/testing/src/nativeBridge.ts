@@ -94,6 +94,14 @@ export class NativeBridge {
     console.log(...args);
   }
 
+  warn(...args: unknown[]): void {
+    console.warn(...args);
+  }
+
+  error(...args: unknown[]): void {
+    console.error(...args);
+  }
+
   setTimeout(cb: () => void, ms: number): number {
     const id = ++this.timerIdCounter;
     const nativeId = setTimeout(() => {

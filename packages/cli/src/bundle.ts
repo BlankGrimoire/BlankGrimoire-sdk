@@ -2,6 +2,7 @@
 
 import { build } from 'esbuild';
 import path from 'node:path';
+import { RUNTIME_GLOBAL_NAME } from '@blankgrimoire/types';
 
 export type BuildOptions = {
   entry: string;
@@ -27,7 +28,7 @@ export async function buildBundle(options: BuildOptions): Promise<string> {
     platform: 'browser',
     minify: options.minify ?? false,
     sourcemap: options.sourcemap ?? false,
-    globalName: 'BlankGrimoireRuntime',
+    globalName: RUNTIME_GLOBAL_NAME,
   });
 
   return outFile;

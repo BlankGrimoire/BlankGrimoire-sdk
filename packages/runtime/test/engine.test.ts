@@ -13,6 +13,7 @@ import {
   normalizeContentRating,
   normalizeStatus,
   resolveSelectors,
+  UnsupportedApiVersionError,
   type ThemeRuntimeOptions,
 } from '../src/engine.js';
 import type { DocumentLike } from '../src/dom.js';
@@ -56,6 +57,7 @@ const adapter: ThemeAdapter = {
   id: 'theme.example',
   name: 'Example Theme',
   version: '1.0.0',
+  apiVersion: 1,
   detectionSignature: { selectors: ['.example-reader'], minScore: 2 },
   selectors,
 };
@@ -77,6 +79,31 @@ function runtime(html: string, overrides: Partial<SiteContext> = {}): ThemeRunti
     document: makeDocument(html),
   };
 }
+
+describe('apiVersion', () => {
+  it('rejects adapters with a different contract version', async () => {
+    const incompatible: ThemeRuntimeOptions = {
+      ...runtime('<html></html>'),
+      adapter: { ...adapter, apiVersion: 2 } as unknown as ThemeAdapter,
+    };
+
+    await expect(extractSearch(incompatible, { page: 1 })).rejects.toBeInstanceOf(
+      UnsupportedApiVersionError,
+    );
+    await expect(dispatch(incompatible, 'search', '{}')).rejects.toThrow(
+      /Unsupported adapter apiVersion 2; expected 1/,
+    );
+  });
+
+  it('rejects adapters that do not declare a version', async () => {
+    const unversioned = { ...adapter } as ThemeAdapter;
+    delete unversioned.apiVersion;
+
+    await expect(
+      extractDetails({ ...runtime('<html></html>'), adapter: unversioned }, 'key'),
+    ).rejects.toThrow(/expected 1/);
+  });
+});
 
 describe('resolveSelectors', () => {
   it('merges nested overrides field by field', () => {
