@@ -142,6 +142,20 @@ describe('extractSearch', () => {
     ]);
   });
 
+  it('uses the item itself when it is the anchor', async () => {
+    const result = await extractSearch(
+      runtime(
+        '<html><body><a class="result" href="/series/lorem">Lorem</a></body></html>',
+        { overrides: { search: { link: '' } } },
+      ),
+      { text: 'lorem', page: 1 },
+    );
+
+    expect(result.items).toEqual([
+      { key: 'https://example.org/series/lorem', title: 'Lorem' },
+    ]);
+  });
+
   it('honours search overrides without replacing sibling fields', async () => {
     const result = await extractSearch(
       runtime(
@@ -242,6 +256,25 @@ describe('extractChapters', () => {
       number: 1,
       publishedAt: '2026-01-01T10:00:00.000Z',
     });
+  });
+
+  it('accepts anchors as chapter items', async () => {
+    const chapters = await extractChapters(
+      runtime(
+        '<html><body><div class="chapter-list">' +
+          '<a class="chapter" href="/ch/1">Chapter 1</a>' +
+          '<a class="chapter" href="/ch/2">Chapter 2</a>' +
+          '</div></body></html>',
+        { overrides: { chapters: { item: 'a.chapter', link: 'a' } } },
+      ),
+      'lorem',
+    );
+
+    expect(chapters.map((chapter) => chapter.key)).toEqual([
+      'https://example.org/ch/1',
+      'https://example.org/ch/2',
+    ]);
+    expect(chapters.map((chapter) => chapter.title)).toEqual(['Chapter 1', 'Chapter 2']);
   });
 });
 
