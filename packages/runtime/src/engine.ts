@@ -111,6 +111,20 @@ function readImageURL(
   return value ? resolveURL(value, baseURL) : undefined;
 }
 
+/**
+ * Finds the link element for a list item.
+ *
+ * Most adapters point at a child anchor. Some sites expose the anchor as the
+ * item itself, so the item is used when it already carries an `href`.
+ */
+function selectLink(element: ElementLike, selector: string | undefined): ElementLike | null {
+  const descendant = selector ? element.querySelector(selector) : null;
+  if (descendant) {
+    return descendant;
+  }
+  return attr(element, 'href') ? element : null;
+}
+
 function splitList(value: string | undefined): string[] | undefined {
   if (!value) {
     return undefined;
@@ -188,9 +202,11 @@ export async function extractSearch(
   const items: MangaSummary[] = [];
 
   for (const element of queryAll(runtime.document, selectors.item)) {
-    const title = textOf(element.querySelector(selectors.title));
-    const link = element.querySelector(selectors.link);
+    const link = selectLink(element, selectors.link);
     const href = link ? attr(link, 'href') : null;
+    // When the item is the anchor, its text is the only available title.
+    const title =
+      textOf(element.querySelector(selectors.title)) || (link ? textOf(link) : '');
     if (title === '' || !href) {
       continue;
     }
@@ -304,14 +320,16 @@ export async function extractChapters(
   const chapters: Chapter[] = [];
 
   for (const element of queryAll(runtime.document, selectors.item)) {
-    const link = element.querySelector(selectors.link);
+    const link = selectLink(element, selectors.link);
     const href = link ? attr(link, 'href') : null;
     if (!href) {
       continue;
     }
 
+    // An item can be the anchor itself, so a missing title selector falls back
+    // to the link text.
     const title = selectors.title
-      ? readText(element, selectors.title)
+      ? (readText(element, selectors.title) ?? textOf(link)) || undefined
       : textOf(link) || undefined;
 
     const chapter: Chapter = { key: resolveURL(href, baseURL) };
