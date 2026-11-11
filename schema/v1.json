@@ -554,6 +554,10 @@
     "ThemeAdapter": {
       "additionalProperties": false,
       "properties": {
+        "apiVersion": {
+          "$ref": "#/definitions/ApiVersion",
+          "description": "Contract version attached by `defineTheme`. Hosts and the runtime reject adapters whose value differs from the current `API_VERSION`."
+        },
         "detectionSignature": {
           "$ref": "#/definitions/ThemeSignature"
         },
@@ -868,24 +872,6 @@
       "description": "Absolute URL, or URL relative to the site `baseURL`.",
       "format": "uri-reference",
       "type": "string"
-    },
-    "defineTheme": {
-      "$comment": "(adapter: ThemeAdapter) => ThemeAdapter & { apiVersion: ApiVersion }",
-      "properties": {
-        "namedArgs": {
-          "additionalProperties": false,
-          "properties": {
-            "adapter": {
-              "$ref": "#/definitions/ThemeAdapter"
-            }
-          },
-          "required": [
-            "adapter"
-          ],
-          "type": "object"
-        }
-      },
-      "type": "object"
     }
   }
 }

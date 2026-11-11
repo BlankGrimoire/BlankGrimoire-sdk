@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: MIT
 
-import type {
-  Attribution,
-  Chapter,
-  ContentRating,
-  MangaDetails,
-  MangaStatus,
-  MangaSummary,
-  Page,
-  PagedResult,
-  SearchQuery,
-  SiteContext,
-  ThemeAdapter,
-  ThemeSelectors,
-  ThemeSelectorsOverrides,
+import {
+  API_VERSION,
+  type Attribution,
+  type Chapter,
+  type ContentRating,
+  type MangaDetails,
+  type MangaStatus,
+  type MangaSummary,
+  type Page,
+  type PagedResult,
+  type SearchQuery,
+  type SiteContext,
+  type ThemeAdapter,
+  type ThemeSelectors,
+  type ThemeSelectorsOverrides,
 } from '@blankgrimoire/types';
 import type { DocumentLike, ElementLike, ParseHTML, WindowLike } from './dom.js';
 import { attr, firstAttribute, queryAll, resolveURL, textOf } from './dom.js';
@@ -32,6 +33,28 @@ export type ExtractionResult = Page[];
 export interface PageKeys {
   mangaKey: string;
   chapterKey: string;
+}
+
+/** Raised when an adapter bundle targets a different contract version. */
+export class UnsupportedApiVersionError extends Error {
+  readonly expected: number = API_VERSION;
+  readonly found: unknown;
+
+  constructor(found: unknown) {
+    super(`Unsupported adapter apiVersion ${String(found)}; expected ${API_VERSION}`);
+    this.name = 'UnsupportedApiVersionError';
+    this.found = found;
+  }
+}
+
+/**
+ * Reject adapters that do not declare the contract version implemented by
+ * this runtime. Adapters created with `defineTheme` always declare it.
+ */
+export function assertAdapterAPIVersion(adapter: ThemeAdapter): void {
+  if (adapter.apiVersion !== API_VERSION) {
+    throw new UnsupportedApiVersionError(adapter.apiVersion);
+  }
 }
 
 /** Merge field-by-field user overrides into the adapter selectors. */
@@ -86,6 +109,20 @@ function readImageURL(
   const image = element.querySelector('img') ?? element;
   const value = firstAttribute(image, ['data-src', 'src', 'data-original']);
   return value ? resolveURL(value, baseURL) : undefined;
+}
+
+/**
+ * Finds the link element for a list item.
+ *
+ * Most adapters point at a child anchor. Some sites expose the anchor as the
+ * item itself, so the item is used when it already carries an `href`.
+ */
+function selectLink(element: ElementLike, selector: string | undefined): ElementLike | null {
+  const descendant = selector ? element.querySelector(selector) : null;
+  if (descendant) {
+    return descendant;
+  }
+  return attr(element, 'href') ? element : null;
 }
 
 function splitList(value: string | undefined): string[] | undefined {
@@ -155,6 +192,7 @@ export async function extractSearch(
   runtime: ThemeRuntimeOptions,
   query: SearchQuery,
 ): Promise<PagedResult<MangaSummary>> {
+  assertAdapterAPIVersion(runtime.adapter);
   const hook = runtime.adapter.hooks?.search;
   if (hook) {
     return hook(runtime.context, query);
@@ -164,9 +202,11 @@ export async function extractSearch(
   const items: MangaSummary[] = [];
 
   for (const element of queryAll(runtime.document, selectors.item)) {
-    const title = textOf(element.querySelector(selectors.title));
-    const link = element.querySelector(selectors.link);
+    const link = selectLink(element, selectors.link);
     const href = link ? attr(link, 'href') : null;
+    // When the item is the anchor, its text is the only available title.
+    const title =
+      textOf(element.querySelector(selectors.title)) || (link ? textOf(link) : '');
     if (title === '' || !href) {
       continue;
     }
@@ -193,6 +233,7 @@ export async function extractDetails(
   runtime: ThemeRuntimeOptions,
   key: string,
 ): Promise<MangaDetails> {
+  assertAdapterAPIVersion(runtime.adapter);
   const hook = runtime.adapter.hooks?.getMangaDetails;
   if (hook) {
     return hook(runtime.context, key);
@@ -268,6 +309,7 @@ export async function extractChapters(
   runtime: ThemeRuntimeOptions,
   key: string,
 ): Promise<Chapter[]> {
+  assertAdapterAPIVersion(runtime.adapter);
   const hook = runtime.adapter.hooks?.getChapters;
   if (hook) {
     return hook(runtime.context, key);
@@ -278,14 +320,16 @@ export async function extractChapters(
   const chapters: Chapter[] = [];
 
   for (const element of queryAll(runtime.document, selectors.item)) {
-    const link = element.querySelector(selectors.link);
+    const link = selectLink(element, selectors.link);
     const href = link ? attr(link, 'href') : null;
     if (!href) {
       continue;
     }
 
+    // An item can be the anchor itself, so a missing title selector falls back
+    // to the link text.
     const title = selectors.title
-      ? readText(element, selectors.title)
+      ? (readText(element, selectors.title) ?? textOf(link)) || undefined
       : textOf(link) || undefined;
 
     const chapter: Chapter = { key: resolveURL(href, baseURL) };
@@ -327,6 +371,7 @@ export async function extractPages(
   runtime: ThemeRuntimeOptions,
   keys: PageKeys,
 ): Promise<Page[]> {
+  assertAdapterAPIVersion(runtime.adapter);
   const hook = runtime.adapter.hooks?.getPages;
   if (hook) {
     return hook(runtime.context, keys.mangaKey, keys.chapterKey);
@@ -373,6 +418,7 @@ export async function dispatch(
   method: string,
   argsJSON: string,
 ): Promise<string> {
+  assertAdapterAPIVersion(runtime.adapter);
   const args = asRecord(argsJSON.trim() === '' ? {} : (JSON.parse(argsJSON) as unknown));
 
   switch (method) {

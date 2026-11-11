@@ -9,6 +9,7 @@
 /.secrets/
 node_modules/
 dist/
+release/
 coverage/
 *.tsbuildinfo
 .turbo/

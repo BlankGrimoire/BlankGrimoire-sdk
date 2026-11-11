@@ -32,7 +32,8 @@ blankgrimoire build <entry> --outdir <dir> [--outfile <file>] [--minify] [--sour
 | `--minify` | No | Minify output |
 | `--sourcemap` | No | Generate source map |
 
-**Output**: Single IIFE file exposing `BlankGrimoireRuntime` global.
+**Output**: Single IIFE file exposing the `RUNTIME_GLOBAL_NAME`
+(`BlankGrimoireRuntime`) global.
 
 ```bash
 blankgrimoire build src/index.ts --outdir dist --outfile dist/runtime.js --minify

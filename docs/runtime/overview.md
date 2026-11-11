@@ -8,7 +8,8 @@ The runtime (`@blankgrimoire/runtime`) is the declarative extraction engine that
 
 ### IIFE Bundle (for JSC)
 ```bash
-# Built by: esbuild src/index.ts --bundle --format=iife --global-name=BlankGrimoireRuntime
+# Built by: tsc -p tsconfig.json && node build.mjs (esbuild, globalName from
+# RUNTIME_GLOBAL_NAME)
 dist/runtime.js  # Exposes global BlankGrimoireRuntime
 ```
 
@@ -49,6 +50,8 @@ interface BlankGrimoireRuntime {
   
   // Utilities
   resolveSelectors, normalizeStatus, normalizeContentRating;
+  assertAdapterAPIVersion;           // Throws UnsupportedApiVersionError
+  UnsupportedApiVersionError;
   
   // Types re-exported
   // ThemeRuntimeOptions, PageKeys, ExtractionResult, etc.
@@ -70,6 +73,15 @@ interface NativeHost {
   clearTimeout?: (handle: unknown) => void;
 }
 ```
+
+The shared names are exported from `@blankgrimoire/types` as
+`NativeBridgeHost`, `NATIVE_BRIDGE_METHODS`, and `RUNTIME_GLOBAL_NAME`; the
+authoritative signature table is in
+[Contract Overview → Native Bridge](../contract/overview.md#native-bridge-host--runtime).
+
+Every extraction entry point calls `assertAdapterAPIVersion` before running.
+Adapters built with `defineTheme` carry `apiVersion: 1`; anything else is
+rejected with `UnsupportedApiVersionError`.
 
 Injected via `globalThis.__native = { ... }`.
 

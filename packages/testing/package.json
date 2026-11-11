@@ -1,6 +1,6 @@
 {
   "name": "@blankgrimoire/testing",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Node testing harness and mock server for BlankGrimoire theme adapters.",
   "license": "MIT",
   "type": "module",

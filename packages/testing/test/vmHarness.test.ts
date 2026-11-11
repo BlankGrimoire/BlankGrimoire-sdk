@@ -47,6 +47,7 @@ const declarativeAdapter: ThemeAdapter = {
   id: 'theme.example',
   name: 'Example Theme',
   version: '1.0.0',
+  apiVersion: 1,
   detectionSignature: {
     metaGenerator: '^ExampleCMS',
     selectors: ['.example-reader'],

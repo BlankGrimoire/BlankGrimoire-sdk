@@ -13,6 +13,7 @@ import {
   normalizeContentRating,
   normalizeStatus,
   resolveSelectors,
+  UnsupportedApiVersionError,
   type ThemeRuntimeOptions,
 } from '../src/engine.js';
 import type { DocumentLike } from '../src/dom.js';
@@ -56,6 +57,7 @@ const adapter: ThemeAdapter = {
   id: 'theme.example',
   name: 'Example Theme',
   version: '1.0.0',
+  apiVersion: 1,
   detectionSignature: { selectors: ['.example-reader'], minScore: 2 },
   selectors,
 };
@@ -77,6 +79,31 @@ function runtime(html: string, overrides: Partial<SiteContext> = {}): ThemeRunti
     document: makeDocument(html),
   };
 }
+
+describe('apiVersion', () => {
+  it('rejects adapters with a different contract version', async () => {
+    const incompatible: ThemeRuntimeOptions = {
+      ...runtime('<html></html>'),
+      adapter: { ...adapter, apiVersion: 2 } as unknown as ThemeAdapter,
+    };
+
+    await expect(extractSearch(incompatible, { page: 1 })).rejects.toBeInstanceOf(
+      UnsupportedApiVersionError,
+    );
+    await expect(dispatch(incompatible, 'search', '{}')).rejects.toThrow(
+      /Unsupported adapter apiVersion 2; expected 1/,
+    );
+  });
+
+  it('rejects adapters that do not declare a version', async () => {
+    const unversioned = { ...adapter } as ThemeAdapter;
+    delete unversioned.apiVersion;
+
+    await expect(
+      extractDetails({ ...runtime('<html></html>'), adapter: unversioned }, 'key'),
+    ).rejects.toThrow(/expected 1/);
+  });
+});
 
 describe('resolveSelectors', () => {
   it('merges nested overrides field by field', () => {
@@ -112,6 +139,20 @@ describe('extractSearch', () => {
         title: 'Lorem',
         coverURL: 'https://example.org/covers/lorem.jpg',
       },
+    ]);
+  });
+
+  it('uses the item itself when it is the anchor', async () => {
+    const result = await extractSearch(
+      runtime(
+        '<html><body><a class="result" href="/series/lorem">Lorem</a></body></html>',
+        { overrides: { search: { link: '' } } },
+      ),
+      { text: 'lorem', page: 1 },
+    );
+
+    expect(result.items).toEqual([
+      { key: 'https://example.org/series/lorem', title: 'Lorem' },
     ]);
   });
 
@@ -215,6 +256,25 @@ describe('extractChapters', () => {
       number: 1,
       publishedAt: '2026-01-01T10:00:00.000Z',
     });
+  });
+
+  it('accepts anchors as chapter items', async () => {
+    const chapters = await extractChapters(
+      runtime(
+        '<html><body><div class="chapter-list">' +
+          '<a class="chapter" href="/ch/1">Chapter 1</a>' +
+          '<a class="chapter" href="/ch/2">Chapter 2</a>' +
+          '</div></body></html>',
+        { overrides: { chapters: { item: 'a.chapter', link: 'a' } } },
+      ),
+      'lorem',
+    );
+
+    expect(chapters.map((chapter) => chapter.key)).toEqual([
+      'https://example.org/ch/1',
+      'https://example.org/ch/2',
+    ]);
+    expect(chapters.map((chapter) => chapter.title)).toEqual(['Chapter 1', 'Chapter 2']);
   });
 });
 
