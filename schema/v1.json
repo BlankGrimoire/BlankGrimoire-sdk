@@ -319,6 +319,12 @@
         "coverURL": {
           "$ref": "#/definitions/URLString"
         },
+        "genres": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "key": {
           "description": "Opaque, stable key chosen by the adapter.",
           "type": "string"
@@ -517,6 +523,12 @@
             "type": "string"
           },
           "type": "object"
+        },
+        "genres": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "page": {
           "type": "number"

@@ -21,6 +21,32 @@ export type MangaStatus = 'ongoing' | 'completed' | 'hiatus' | 'cancelled' | 'un
 /** Content rating. Adapters emit `unknown` when the site does not expose one. */
 export type ContentRating = 'safe' | 'suggestive' | 'mature' | 'unknown';
 
+/** Genre tag for cross-site filtering. Adapters should normalize to these. */
+export type Genre = 
+  | 'action' 
+  | 'adventure' 
+  | 'comedy' 
+  | 'drama' 
+  | 'fantasy' 
+  | 'horror' 
+  | 'isekai' 
+  | 'romance' 
+  | 'sci-fi' 
+  | 'slice-of-life' 
+  | 'sports' 
+  | 'supernatural' 
+  | 'thriller' 
+  | 'historical' 
+  | 'psychological' 
+  | 'mystery' 
+  | 'ecchi' 
+  | 'harem' 
+  | 'shounen' 
+  | 'shoujo' 
+  | 'seinen' 
+  | 'josei' 
+  | 'other';
+
 export interface Attribution {
   siteName: string;
   siteURL: URLString;
@@ -41,6 +67,7 @@ export interface MangaDetails extends MangaSummary {
   artists?: string[];
   synopsis?: string;
   tags?: string[];
+  genres?: string[];
   status: MangaStatus;
   contentRating: ContentRating;
   attribution?: Attribution;
@@ -71,8 +98,48 @@ export interface PagedResult<T> {
 /** Concrete alias so the JSON Schema gets a named definition for fixtures. */
 export type MangaSummaryPage = PagedResult<MangaSummary>;
 
+/** A genre filter exposed by a specific site */
+export interface SiteGenreFilter {
+  /** Display name shown on the site (e.g., "Action", "Azione", "AKCJA") */
+  displayName: string;
+  /** Value to pass in URL/query param (e.g., "action", "azione", "akcja") */
+  value: string;
+  /** Direct URL to the genre page if navigable (optional) */
+  url?: string;
+}
+
+/** Mapping configuration for extracting genre filters from a site */
+export interface GenreMapping {
+  /** CSS selector to extract genre elements (e.g., ".genre-list a") */
+  source: string;
+  /** Attribute for display name (default: "text") */
+  displayNameAttr?: string;
+  /** Attribute for filter value (default: "href" or "data-value") */
+  valueAttr?: string;
+  /** Regex pattern to extract value from href (e.g., "/genre/([^/]+)") */
+  valuePattern?: string;
+  /** Query parameter name for search URL (e.g., "genre") */
+  filterParam?: string;
+}
+
+/** A unified genre (case-insensitive merge across sites) */
+export interface UnifiedGenre {
+  /** Lowercase key for comparison */
+  id: string;
+  /** Display name (capitalized for UI) */
+  displayName: string;
+  /** Site-specific filters keyed by siteProfileID */
+  siteFilters: Record<string, SiteGenreFilter>;
+}
+
+/** Result of genre extraction from a page */
+export interface ExtractedGenres {
+  filters: SiteGenreFilter[];
+}
+
 export interface SearchQuery {
   text?: string;
   page: number;
   filters?: Record<string, string>;
+  genres?: string[];
 }
