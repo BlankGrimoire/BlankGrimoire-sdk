@@ -5,6 +5,8 @@ import {
   type Attribution,
   type Chapter,
   type ContentRating,
+  type ExtractedGenres,
+  type GenreMapping,
   type MangaDetails,
   type MangaStatus,
   type MangaSummary,
@@ -12,6 +14,7 @@ import {
   type PagedResult,
   type SearchQuery,
   type SiteContext,
+  type SiteGenreFilter,
   type ThemeAdapter,
   type ThemeSelectors,
   type ThemeSelectorsOverrides,
@@ -396,6 +399,64 @@ export async function extractPages(
   return [];
 }
 
+/** Extract genre filters from a page using the theme's genre mapping. */
+export async function extractGenres(
+  runtime: ThemeRuntimeOptions,
+  mapping: GenreMapping,
+): Promise<ExtractedGenres> {
+  assertAdapterAPIVersion(runtime.adapter);
+  
+  const document = runtime.document;
+  const filters: SiteGenreFilter[] = [];
+  
+  if (!mapping.source) {
+    return { filters };
+  }
+  
+  const elements = document.querySelectorAll(mapping.source);
+  
+  for (const element of Array.from(elements)) {
+    const displayName = mapping.displayNameAttr
+      ? element.querySelector(mapping.displayNameAttr)?.textContent?.trim() || element.textContent?.trim()
+      : element.textContent?.trim();
+    
+    if (!displayName) continue;
+    
+    let value = '';
+    if (mapping.valueAttr) {
+      value = element.getAttribute(mapping.valueAttr) || '';
+    } else {
+      value = element.textContent?.trim() || '';
+    }
+    
+    if (mapping.valuePattern) {
+      const regex = new RegExp(mapping.valuePattern);
+      const match = value.match(regex);
+      if (match && match[1]) {
+        value = match[1];
+      }
+    }
+    
+      if (value) {
+        const href = element.getAttribute('href');
+        if (href) {
+          filters.push({
+            displayName: displayName.trim(),
+            value: value.trim(),
+            url: href
+          });
+        } else {
+          filters.push({
+            displayName: displayName.trim(),
+            value: value.trim()
+          });
+        }
+      }
+  }
+  
+  return { filters };
+}
+
 /** Backwards-compatible name for page extraction. */
 export const extract = extractPages;
 
@@ -453,6 +514,17 @@ export async function dispatch(
           chapterKey: String(args.chapterKey ?? ''),
         }),
       );
+    case 'extractGenres': {
+      const argsRecord = args as Record<string, unknown>;
+      const mapping: GenreMapping = {
+        source: String(argsRecord.source ?? ''),
+      } as GenreMapping;
+      if (argsRecord.displayNameAttr) (mapping as unknown as Record<string, unknown>).displayNameAttr = String(argsRecord.displayNameAttr);
+      if (argsRecord.valueAttr) (mapping as unknown as Record<string, unknown>).valueAttr = String(argsRecord.valueAttr);
+      if (argsRecord.valuePattern) (mapping as unknown as Record<string, unknown>).valuePattern = String(argsRecord.valuePattern);
+      if (argsRecord.filterParam) (mapping as unknown as Record<string, unknown>).filterParam = String(argsRecord.filterParam);
+      return toJSON(await extractGenres(runtime, mapping));
+    }
     default:
       throw new Error(`Unknown adapter method: ${method}`);
   }
