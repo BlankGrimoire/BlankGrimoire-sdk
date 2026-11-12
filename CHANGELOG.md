@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.1.0...v1.2.0) (2026-11-12)
+
+### Features
+
+* Enhance genre filtering and introduce bridge and HTTP interfaces ([#32](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/32)) ([5828daf](https://github.com/BlankGrimoire/BlankGrimoire-sdk/commit/5828daf76be33ef4655bd51cc76f64949a8776ae))
+
 ## [1.1.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.0.1...v1.1.0) (2026-11-11)
 
 ### Features
