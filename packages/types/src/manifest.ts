@@ -21,6 +21,8 @@ export interface AdapterManifest {
    * @pattern ^[a-f0-9]{64}$
    */
   sha256: string;
+  /** Optional referrer headers for CDN domains that require an origin Referer. */
+  referrerHeaders?: Record<string, string>;
 }
 
 export interface RepositoryIndex {
