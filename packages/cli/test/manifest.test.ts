@@ -47,9 +47,30 @@ describe('buildManifest', () => {
         minScore: 3,
       },
       sha256,
+      referrerHeaders: {},
     });
     expect(manifest.apiVersion).toBe(1);
     expect(Object.keys(manifest)).not.toContain('signature');
+  });
+
+  it('publishes referrer headers when provided', async () => {
+    directory = makeTempDir('blankgrimoire-manifest-');
+    const outFile = path.join(directory, 'manifest.json');
+
+    await buildManifest({
+      id: 'theme.example',
+      name: 'Example Theme',
+      version: '1.0.0',
+      detectionSignature: { selectors: ['.example-reader'], minScore: 3 },
+      sha256,
+      referrerHeaders: { 'cdn.example.org': 'https://example.org/' },
+      outFile,
+    });
+
+    const manifest = readJSON<AdapterManifest>(outFile);
+    expect(manifest.referrerHeaders).toEqual({
+      'cdn.example.org': 'https://example.org/',
+    });
   });
 
   it('rejects an invalid sha256 digest', async () => {

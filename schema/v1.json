@@ -18,6 +18,13 @@
         "name": {
           "type": "string"
         },
+        "referrerHeaders": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Optional referrer headers for CDN domains that require an origin Referer.",
+          "type": "object"
+        },
         "sha256": {
           "description": "SHA-256 of the bundle, lowercase hexadecimal.",
           "pattern": "^[a-f0-9]{64}$",

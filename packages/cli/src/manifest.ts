@@ -9,6 +9,7 @@ export interface BuildManifestOptions {
   version: string;
   detectionSignature: ThemeSignature;
   sha256: string;
+  referrerHeaders?: Record<string, string>;
   outFile: string;
 }
 
@@ -30,6 +31,7 @@ export async function buildManifest(options: BuildManifestOptions): Promise<stri
     apiVersion,
     detectionSignature: options.detectionSignature,
     sha256: options.sha256,
+    referrerHeaders: options.referrerHeaders ?? {},
   };
 
   const content = JSON.stringify(manifest, null, 2);
