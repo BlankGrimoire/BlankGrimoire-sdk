@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.2.0...v1.3.0) (2026-11-14)
+
+### Features
+
+* add referrerHeaders to the adapter manifest ([#33](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/33)) ([07b84b5](https://github.com/BlankGrimoire/BlankGrimoire-sdk/commit/07b84b59d72957e58dab359b80f41f1292c34d97))
+
 ## [1.2.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.1.0...v1.2.0) (2026-11-12)
 
 ### Features
