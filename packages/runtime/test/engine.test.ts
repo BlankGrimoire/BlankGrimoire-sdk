@@ -243,6 +243,25 @@ describe('extractDetails', () => {
     expect(details.tags).toEqual(['Action', 'Slice of life', 'Drama']);
   });
 
+  it('falls back to the single node when the list selector matches nothing', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body>' +
+          '<h1 class="series-title">Lorem</h1>' +
+          '<p class="series-tags">Action, Drama | Fantasy</p>' +
+          '</body></html>',
+        {
+          overrides: { details: { tagsItem: '.series-genres a' } },
+        },
+      ),
+      'lorem',
+    );
+
+    // The layout variant has no anchors, so the plain field is used instead of
+    // returning nothing.
+    expect(details.tags).toEqual(['Action', 'Drama', 'Fantasy']);
+  });
+
   it('applies list selectors to authors, artists and alt titles', async () => {
     const details = await extractDetails(
       runtime(
