@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.1](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.4.0...v1.4.1) (2026-11-16)
+
+### Bug Fixes
+
+* fall back to the single node when a list selector matches nothing ([d451f43](https://github.com/BlankGrimoire/BlankGrimoire-sdk/commit/d451f435fde970ccd6993f6cb7fddf0f7e5a97a9))
+
 ## [1.4.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.3.1...v1.4.0) (2026-11-16)
 
 ### Features
