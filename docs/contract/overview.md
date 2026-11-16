@@ -31,7 +31,9 @@ interface ThemeSignature {
   minScore: number;            // Threshold for detection
 }
 ```
-Scoring: generator +3, each selector +2, each scriptSrc +1, each probe +3.
+Scoring: generator +30, each selector +15, each scriptSrc +20. `probePaths` do
+not contribute to the score; they are fetched only to break a tie between
+adapters that scored equally.
 
 ### ThemeSelectors (Declarative Extraction)
 ```ts

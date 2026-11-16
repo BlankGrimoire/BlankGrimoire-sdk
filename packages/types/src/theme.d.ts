@@ -23,10 +23,13 @@ export interface SiteContext {
 }
 /**
  * Theme detection signature. Scoring is done by the host:
- * - metaGenerator match: +3
- * - each matching selector: +2
- * - each matching scriptSrc regex: +1
- * - each probePath returning 2xx: +3
+ * - metaGenerator match: +30
+ * - each matching selector: +15
+ * - each matching scriptSrc regex: +20
+ *
+ * `probePaths` are not part of the score. The host fetches them only to break a
+ * tie between adapters that scored equally.
+ *
  * The theme is detected when the total score is at least `minScore`.
  */
 export interface ThemeSignature {

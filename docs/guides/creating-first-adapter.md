@@ -73,7 +73,7 @@ export default defineTheme({
     selectors: ['.my-reader', '.my-chapter-list'], // Must exist in DOM
     scriptSrc: ['/assets/my-theme\\.js'],          // Script src regex
     probePaths: ['/api/health'],       // Must return 2xx
-    minScore: 4,                       // Threshold (generator=3, each selector=2)
+    minScore: 45,                      // Threshold (generator=30, each selector=15)
   },
   
   // Declarative extraction (no code needed for most sites)
@@ -140,7 +140,7 @@ Create `detection.json` for the manifest command:
   "selectors": [".my-reader", ".my-chapter-list"],
   "scriptSrc": ["/assets/my-theme\\.js"],
   "probePaths": ["/api/health"],
-  "minScore": 4
+  "minScore": 45
 }
 ```
 
@@ -189,7 +189,7 @@ describe('My Theme Adapter', () => {
   it('detects the theme', async () => {
     const result = await harness.testTheme(testHTML, 'https://example.org/');
     expect(result.detected).toBe(true);
-    expect(result.score).toBeGreaterThanOrEqual(4);
+    expect(result.score).toBeGreaterThanOrEqual(45);
   });
 
   it('extracts search results', async () => {

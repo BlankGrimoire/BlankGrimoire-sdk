@@ -853,7 +853,7 @@
     },
     "ThemeSignature": {
       "additionalProperties": false,
-      "description": "Theme detection signature. Scoring is done by the host:\n- metaGenerator match: +3\n- each matching selector: +2\n- each matching scriptSrc regex: +1\n- each probePath returning 2xx: +3 The theme is detected when the total score is at least `minScore`.",
+      "description": "Theme detection signature. Scoring is done by the host:\n- metaGenerator match: +30\n- each matching selector: +15\n- each matching scriptSrc regex: +20\n\n`probePaths` are not part of the score. The host fetches them only to break a tie between adapters that scored equally.\n\nThe theme is detected when the total score is at least `minScore`.",
       "properties": {
         "metaGenerator": {
           "description": "Regex matched against `<meta name=\"generator\">`.",

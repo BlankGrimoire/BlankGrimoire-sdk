@@ -40,9 +40,12 @@ const result = await harness.testTheme(html, 'https://example.org/', {
 });
 ```
 
-The harness scores the detection signature, then calls the runtime through its
-JSON dispatcher. When the theme is not detected it returns only detection data.
-Adapters may be passed directly or as a module-shaped `{ default: adapter }`.
+The harness scores the detection signature with the same weights as the host
+(`+30` generator, `+15` per selector, `+20` per script pattern), then calls the
+runtime through its JSON dispatcher. `probePaths` never contribute to the score:
+the host fetches them only to break a tie. When the theme is not detected the
+harness returns only detection data. Adapters may be passed directly or as a
+module-shaped `{ default: adapter }`.
 
 ## MockServer
 
