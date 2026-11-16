@@ -14,3 +14,11 @@ coverage/
 *.tsbuildinfo
 .turbo/
 *.log
+
+# Emitted TypeScript output must live in dist/, never next to sources.
+# node.d.ts in cli/testing is a hand-written ambient declaration, not output.
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+!packages/*/src/**/node.d.ts

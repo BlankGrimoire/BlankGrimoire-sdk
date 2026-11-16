@@ -105,20 +105,29 @@ export class VMHarness {
     this.runtime = runtime;
   }
 
-  private score(signature: ThemeSignature, document: DocumentLike, url: string): Promise<number> {
+  /**
+   * Scores a detection signature exactly like the host:
+   * `+30` for a `metaGenerator` match, `+15` per matching selector and `+20`
+   * per matching `scriptSrc` pattern.
+   *
+   * `probePaths` never contribute here. The host fetches them only to break a
+   * tie between adapters that scored equally, and this harness scores a single
+   * adapter against a single document, so there is no tie to resolve.
+   */
+  private score(signature: ThemeSignature, document: DocumentLike): number {
     let total = 0;
 
     if (signature.metaGenerator) {
       const meta = document.querySelector('meta[name="generator"]');
       const content = meta?.getAttribute('content') ?? '';
       if (new RegExp(signature.metaGenerator).test(content)) {
-        total += 3;
+        total += 30;
       }
     }
 
     for (const selector of signature.selectors ?? []) {
       if (document.querySelector(selector)) {
-        total += 2;
+        total += 15;
       }
     }
 
@@ -131,26 +140,11 @@ export class VMHarness {
           return regex.test(src);
         })
       ) {
-        total += 1;
+        total += 20;
       }
     }
 
-    return (async () => {
-      for (const probePath of signature.probePaths ?? []) {
-        try {
-          const response = await this.bridge.request({
-            url: new URL(probePath, url).toString(),
-            method: 'GET',
-          });
-          if (response.status >= 200 && response.status < 300) {
-            total += 3;
-          }
-        } catch {
-          // A failed probe simply contributes no score.
-        }
-      }
-      return total;
-    })();
+    return total;
   }
 
   async testTheme(
@@ -162,7 +156,7 @@ export class VMHarness {
     const document = dom.window.document as unknown as DocumentLike;
     const window = dom.window as unknown as WindowLike;
     const detectionSignature = this.adapter.detectionSignature;
-    const score = await this.score(detectionSignature, document, url);
+    const score = this.score(detectionSignature, document);
 
     const base: ThemeTestResult = {
       detected: score >= detectionSignature.minScore,

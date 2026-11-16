@@ -240,8 +240,8 @@ harness.getNativeBridge(): NativeBridge;
 ```ts
 {
   detected: true,
-  score: 7,
-  detectionSignature: { metaGenerator: '^TestCMS', selectors: ['.test'], minScore: 3 },
+  score: 45,
+  detectionSignature: { metaGenerator: '^TestCMS', selectors: ['.test'], minScore: 30 },
   selectors: { search: {...}, details: {...}, chapters: {...}, pages: {...} },
   search: { items: [{ key, title, coverURL? }], hasNextPage: false },
   details: { key, title, status, contentRating, ... },

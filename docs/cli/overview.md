@@ -83,7 +83,7 @@ blankgrimoire manifest \
   "selectors": [".example-reader"],
   "scriptSrc": ["/assets/theme\\.js"],
   "probePaths": ["/health"],
-  "minScore": 3
+  "minScore": 45
 }
 ```
 

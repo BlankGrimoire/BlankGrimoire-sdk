@@ -349,20 +349,21 @@ describe('Detection scoring', () => {
   it('scores metaGenerator', async () => {
     const html = '<html><head><meta name="generator" content="TestCMS 2.0"></head><body></body></html>';
     const result = await harness.testTheme(html, 'https://example.org/');
-    // metaGenerator match = +3
+    // metaGenerator match = +30
   });
 
   it('scores selectors', async () => {
     const html = '<html><body><div class="test-reader"></div></body></html>';
     const result = await harness.testTheme(html, 'https://example.org/');
-    // Each matching selector = +2
+    // Each matching selector = +15
   });
 
-  it('scores probePaths via MockServer', async () => {
+  it('does not score probePaths', async () => {
     server.register('/health', async () => ({ status: 200, headers: {}, body: 'ok' }));
     const html = '<html><head><meta name="generator" content="TestCMS"></head><body></body></html>';
     const result = await harness.testTheme(html, baseURL + '/');
-    // Each successful probe = +3
+    // Probes only break ties on the host, so the score stays +30 here.
+    expect(result.score).toBe(30);
   });
 });
 ```

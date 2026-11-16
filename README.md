@@ -25,7 +25,7 @@ export default defineTheme({
   id: 'theme.example',
   name: 'Example Theme',
   version: '1.0.0',
-  detectionSignature: { selectors: ['.example-reader'], minScore: 2 },
+  detectionSignature: { selectors: ['.example-reader'], minScore: 15 },
   selectors: {
     search: { path: '/search', item: '.result', title: '.result-title', link: 'a' },
     details: { title: 'h1.series-title' },
