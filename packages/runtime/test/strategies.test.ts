@@ -127,6 +127,58 @@ describe('extractScriptJSON', () => {
       ),
     ).toEqual([]);
   });
+
+  it('reports a paid payload through the guard callback', async () => {
+    const document = makeDocument(
+      `<html><body><script>window.__PAGES__ = ${JSON.stringify({
+        chapter: { images: ['/teaser.jpg'], protected: true },
+      })}</script></body></html>`,
+    );
+    let blocked = 0;
+    const pages = await extractScriptJSON(
+      {
+        kind: 'scriptJSON',
+        pattern: '__PAGES__',
+        path: 'chapter.images',
+        skipWhen: 'chapter.protected',
+      },
+      document,
+      'https://example.org/',
+      undefined,
+      () => {
+        blocked += 1;
+      },
+    );
+
+    expect(pages).toEqual([]);
+    expect(blocked).toBe(1);
+  });
+
+  it('ignores a false guard and keeps the pages', async () => {
+    const document = makeDocument(
+      `<html><body><script>window.__PAGES__ = ${JSON.stringify({
+        chapter: { images: ['/001.jpg'], protected: false },
+      })}</script></body></html>`,
+    );
+    let blocked = 0;
+    const pages = await extractScriptJSON(
+      {
+        kind: 'scriptJSON',
+        pattern: '__PAGES__',
+        path: 'chapter.images',
+        skipWhen: 'chapter.protected',
+      },
+      document,
+      'https://example.org/',
+      undefined,
+      () => {
+        blocked += 1;
+      },
+    );
+
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/001.jpg' }]);
+    expect(blocked).toBe(0);
+  });
 });
 
 describe('extractHydration', () => {
@@ -163,6 +215,32 @@ describe('extractHydration', () => {
         'https://example.org/',
       ),
     ).toEqual([]);
+  });
+
+  it('stops on a paid hydration payload', () => {
+    const document = makeDocument(
+      `<html><body><script id="__NEXT_DATA__" type="application/json">${JSON.stringify({
+        props: { pageProps: { pages: ['/teaser.jpg'], isPremium: true } },
+      })}</script></body></html>`,
+    );
+    let blocked = 0;
+    const pages = extractHydration(
+      {
+        kind: 'hydration',
+        framework: 'next',
+        path: 'props.pageProps.pages',
+        skipWhen: 'props.pageProps.isPremium',
+      },
+      document,
+      'https://example.org/',
+      undefined,
+      () => {
+        blocked += 1;
+      },
+    );
+
+    expect(pages).toEqual([]);
+    expect(blocked).toBe(1);
   });
 });
 
@@ -208,6 +286,47 @@ describe('extractAjax', () => {
       },
     );
     expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/ajax.jpg' }]);
+    delete (globalThis as unknown as { __native?: unknown }).__native;
+  });
+
+  it('propagates a paid-content guard from a nested strategy', async () => {
+    (globalThis as unknown as { __native?: Record<string, unknown> }).__native = {
+      request: (request: { url: string }) => ({
+        status: 200,
+        url: request.url,
+        headers: { 'content-type': 'text/html' },
+        body:
+          '<html><body><script>window.__DATA__ = ' +
+          JSON.stringify({ chapter: { images: ['/teaser.jpg'], protected: true } }) +
+          '</script></body></html>',
+      }),
+    };
+
+    let blocked = 0;
+    const pages = await extractAjax(
+      {
+        kind: 'ajax',
+        method: 'GET',
+        path: '/api',
+        then: {
+          kind: 'scriptJSON',
+          pattern: '__DATA__',
+          path: 'chapter.images',
+          skipWhen: 'chapter.protected',
+        },
+      },
+      makeDocument('<html></html>'),
+      {
+        baseURL: 'https://example.org/',
+        parseHTML: (html) => makeDocument(html),
+        onBlocked: () => {
+          blocked += 1;
+        },
+      },
+    );
+
+    expect(pages).toEqual([]);
+    expect(blocked).toBe(1);
     delete (globalThis as unknown as { __native?: unknown }).__native;
   });
 

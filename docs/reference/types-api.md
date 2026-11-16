@@ -166,12 +166,14 @@ interface ScriptJSONStrategy {
   pattern: string;
   path: string;
   base64?: boolean;
+  skipWhen?: string;        // Dot path; truthy → paid, no pages
 }
 
 interface HydrationStrategy {
   kind: 'hydration';
   framework: 'next' | 'nuxt';
   path?: string;
+  skipWhen?: string;        // Dot path; truthy → paid, no pages
 }
 
 interface AjaxStrategy {
@@ -188,6 +190,7 @@ interface StrategyEnvironment {
   baseURL: string;
   window?: WindowLike;
   parseHTML?: ParseHTML;
+  onBlocked?: () => void;   // A skipWhen guard reported paid content
 }
 ```
 
@@ -232,6 +235,8 @@ interface ThemeSelectors {
     title?: string;
     date?: string;
     order: 'asc' | 'desc';
+    excludeItem?: string;    // Rows where this matches inside are dropped
+    premiumMarker?: string;  // Alias of excludeItem for shipped adapters
   };
   pages: PagesConfig;
   attribution?: {

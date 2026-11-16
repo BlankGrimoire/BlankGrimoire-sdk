@@ -75,6 +75,17 @@ export interface ThemeSelectors {
     title?: string;
     date?: string;
     order: 'asc' | 'desc';
+    /**
+     * Selector evaluated **inside** every chapter row. A row where it matches is
+     * dropped before the list is returned, so locked chapters never reach the
+     * host: a coin badge, a lock icon or a premium class are all one selector.
+     */
+    excludeItem?: string;
+    /**
+     * Alias of `excludeItem` kept because adapters already ship it. When both
+     * are present, `excludeItem` wins.
+     */
+    premiumMarker?: string;
   };
   pages: PagesConfig;
   attribution?: {

@@ -63,6 +63,8 @@ interface ThemeSelectors {
     title?: string;            // Chapter title selector
     date?: string;             // Publication date selector
     order: 'asc' | 'desc';     // Sort order
+    excludeItem?: string;      // Rows where this matches inside the row are dropped
+    premiumMarker?: string;    // Alias of excludeItem kept for shipped adapters
   };
   pages: PagesConfig;          // Array of extraction strategies
   attribution?: {
@@ -114,6 +116,19 @@ interface ThemeAdapter {
 The runtime throws `UnsupportedApiVersionError` when an adapter does not
 declare `apiVersion: 1`. The iOS host performs the same check when it loads a
 bundle and when it decodes a manifest.
+
+### Paid Content (Rule 9)
+
+Adapters must never extract chapters or pages behind a paywall. The contract
+makes that declarative instead of leaving it to per-adapter selector tricks:
+
+- `chapters.excludeItem` drops rows where the selector matches **inside** the
+  row. `premiumMarker` is accepted as an alias for adapters that already ship it;
+  when both are present, `excludeItem` wins.
+- `scriptJSON` and `hydration` accept `skipWhen`, a dot path read from the same
+  payload that carries the images. A truthy value yields no pages and **stops**
+  page extraction, so a later strategy cannot return the locked images.
+- Dropped rows and blocked payloads are reported through the log bridge.
 
 ### SiteContext (Host → Adapter)
 ```ts

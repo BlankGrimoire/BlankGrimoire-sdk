@@ -184,7 +184,8 @@ Closed unions — **no additional values allowed**. Host normalizes unknown text
     "kind": { "const": "scriptJSON" },
     "pattern": { "type": "string" },
     "path": { "type": "string" },
-    "base64": { "type": "boolean" }
+    "base64": { "type": "boolean" },
+    "skipWhen": { "type": "string" }
   }
 }
 ```
@@ -197,7 +198,8 @@ Closed unions — **no additional values allowed**. Host normalizes unknown text
   "properties": {
     "kind": { "const": "hydration" },
     "framework": { "enum": ["next", "nuxt"] },
-    "path": { "type": "string" }
+    "path": { "type": "string" },
+    "skipWhen": { "type": "string" }
   }
 }
 ```

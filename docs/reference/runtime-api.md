@@ -173,6 +173,8 @@ async function extractChapters(
   key: string
 ): Promise<Chapter[]>;
 // Hook: adapter.hooks?.getChapters(ctx, key)
+// Drops rows matched by chapters.excludeItem (or premiumMarker) before reading
+// them, and logs 'chapters: dropped N paid rows' through the bridge
 ```
 
 ### `extractPages(runtime, keys)`
@@ -183,6 +185,7 @@ async function extractPages(
 ): Promise<Page[]>;
 // Hook: adapter.hooks?.getPages(ctx, mangaKey, chapterKey)
 // Runs strategies in order; first with pages wins
+// A truthy skipWhen guard stops extraction and returns []
 ```
 
 ### `normalizeStatus(text)`
@@ -225,6 +228,7 @@ async function runStrategy(
 ): Promise<Page[]>;
 // Dispatches by strategy.kind: 'css' | 'scriptJSON' | 'hydration' | 'ajax'
 // Returns [] if no match; max depth 5 for ajax
+// Calls environment.onBlocked when a skipWhen guard reports paid content
 ```
 
 ### `extractCss(strategy, document, baseURL)`

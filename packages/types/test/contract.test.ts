@@ -20,6 +20,7 @@ const FIXTURES: Record<string, string> = {
   'attribution.json': 'Attribution',
   'chapter.json': 'Chapter',
   'extraction-strategy.json': 'ExtractionStrategy',
+  'extraction-strategy-script-json.json': 'ExtractionStrategy',
   'http-request.json': 'HttpRequest',
   'http-response.json': 'HttpResponse',
   'manga-details.json': 'MangaDetails',
