@@ -55,12 +55,15 @@ interface BuildManifestOptions {
   version: string;            // Semver
   detectionSignature: ThemeSignature;  // From @blankgrimoire/types
   sha256: string;             // 64 lowercase hex chars
+  referrerHeaders?: Record<string, string>;  // CDN referer overrides
+  networkHosts?: string[];    // Host templates, e.g. ['api.{host}']
   outFile: string;            // Output manifest path
 }
 
 async function buildManifest(options: BuildManifestOptions): Promise<string>;
 // Returns output file path
 // Validates sha256 format (64 hex chars)
+// Validates networkHosts templates (exactly one {host}, no scheme/path)
 // Uses API_VERSION (1) automatically
 ```
 

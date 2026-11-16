@@ -127,6 +127,18 @@ export interface ThemeAdapter {
   detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
   /**
+   * Extra hosts this adapter contacts, written as templates relative to the
+   * site the user configured. Each entry contains exactly one `{host}`
+   * placeholder, for example `api.{host}`.
+   *
+   * The host substitutes the site host, drops a leading `www.`, and adds the
+   * result to the network policy only when it is the site host itself or a
+   * subdomain of it. An adapter can therefore reach the API of its own family
+   * without naming a domain and without widening the allowlist beyond the
+   * site.
+   */
+  networkHosts?: string[];
+  /**
    * Executable escape hatch for edge cases. Hooks live only in the bundle;
    * they are not serialised into JSON.
    */

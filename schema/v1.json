@@ -18,6 +18,13 @@
         "name": {
           "type": "string"
         },
+        "networkHosts": {
+          "description": "Host templates the adapter's hooks contact, relative to the site host, for example `api.{host}`. The host expands them against the configured site and adds them to the network policy. See `ThemeAdapter.networkHosts`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "referrerHeaders": {
           "additionalProperties": {
             "type": "string"
@@ -598,6 +605,13 @@
         },
         "name": {
           "type": "string"
+        },
+        "networkHosts": {
+          "description": "Extra hosts this adapter contacts, written as templates relative to the site the user configured. Each entry contains exactly one `{host}` placeholder, for example `api.{host}`.\n\nThe host substitutes the site host, drops a leading `www.`, and adds the result to the network policy only when it is the site host itself or a subdomain of it. An adapter can therefore reach the API of its own family without naming a domain and without widening the allowlist beyond the site.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
         },
         "selectors": {
           "$ref": "#/definitions/ThemeSelectors"
