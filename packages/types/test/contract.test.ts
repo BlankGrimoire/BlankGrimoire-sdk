@@ -35,6 +35,7 @@ const FIXTURES: Record<string, string> = {
   'site-context.json': 'SiteContext',
   'theme-adapter.json': 'ThemeAdapter',
   'theme-selectors.json': 'ThemeSelectors',
+  'theme-selectors-list.json': 'ThemeSelectors',
   'theme-selectors-overrides.json': 'ThemeSelectorsOverrides',
   'theme-signature.json': 'ThemeSignature',
 };

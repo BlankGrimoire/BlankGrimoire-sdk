@@ -30,6 +30,7 @@ Canonical JSON fixtures for every contract entity, published with each SDK relea
 | `site-context.json` | `SiteContext` | With empty overrides |
 | `theme-adapter.json` | `ThemeAdapter` | Minimal adapter |
 | `theme-selectors.json` | `ThemeSelectors` | Full selectors |
+| `theme-selectors-list.json` | `ThemeSelectors` | List-aware detail selectors |
 | `theme-selectors-overrides.json` | `ThemeSelectorsOverrides` | Deep partial overrides |
 | `theme-signature.json` | `ThemeSignature` | Detection signature |
 
@@ -241,6 +242,11 @@ Canonical JSON fixtures for every contract entity, published with each SDK relea
   }
 }
 ```
+
+### `theme-selectors-list.json`
+Same selector set as `theme-selectors.json`, with `tagsItem`, `authorsItem`,
+`artistsItem` and `altTitlesItem` added. Each matching element becomes one
+entry.
 
 ### `theme-selectors.json`
 ```json

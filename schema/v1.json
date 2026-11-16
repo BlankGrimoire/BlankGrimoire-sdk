@@ -678,10 +678,22 @@
             "altTitles": {
               "type": "string"
             },
+            "altTitlesItem": {
+              "description": "List-aware variant of `altTitles`. See `authorsItem`.",
+              "type": "string"
+            },
             "artists": {
               "type": "string"
             },
+            "artistsItem": {
+              "description": "List-aware variant of `artists`. See `authorsItem`.",
+              "type": "string"
+            },
             "authors": {
+              "type": "string"
+            },
+            "authorsItem": {
+              "description": "List-aware variant of `authors`. Every element matched by the selector becomes one entry, in document order, with empties and duplicates removed. When present it wins over `authors`, which stays available for hosts that do not know this field.",
               "type": "string"
             },
             "contentRating": {
@@ -699,6 +711,10 @@
               "type": "string"
             },
             "tags": {
+              "type": "string"
+            },
+            "tagsItem": {
+              "description": "List-aware variant of `tags`. See `authorsItem`.",
               "type": "string"
             },
             "title": {
@@ -807,10 +823,22 @@
             "altTitles": {
               "type": "string"
             },
+            "altTitlesItem": {
+              "description": "List-aware variant of `altTitles`. See `authorsItem`.",
+              "type": "string"
+            },
             "artists": {
               "type": "string"
             },
+            "artistsItem": {
+              "description": "List-aware variant of `artists`. See `authorsItem`.",
+              "type": "string"
+            },
             "authors": {
+              "type": "string"
+            },
+            "authorsItem": {
+              "description": "List-aware variant of `authors`. Every element matched by the selector becomes one entry, in document order, with empties and duplicates removed. When present it wins over `authors`, which stays available for hosts that do not know this field.",
               "type": "string"
             },
             "contentRating": {
@@ -828,6 +856,10 @@
               "type": "string"
             },
             "tags": {
+              "type": "string"
+            },
+            "tagsItem": {
+              "description": "List-aware variant of `tags`. See `authorsItem`.",
               "type": "string"
             },
             "title": {

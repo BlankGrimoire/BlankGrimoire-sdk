@@ -52,6 +52,8 @@ details: {
   artists: '.series-artists',        // Optional (comma-separated)
   altTitles: '.series-alt-titles',   // Optional (comma-separated)
   tags: '.series-tags',              // Optional (comma-separated)
+  authorsItem: '.series-authors li', // Optional: one label per element
+  tagsItem: '.series-genres a',      // Optional: wins over tags
   status: '.series-status',          // Text → normalized to MangaStatus
   contentRating: '.series-rating',   // Text → normalized to ContentRating
 }
@@ -73,6 +75,26 @@ details: {
 
 ### Split Lists
 `authors`, `artists`, `altTitles`, `tags` — split by `,`, `|`, or newline, trimmed, empty filtered.
+
+When the page renders **one element per label**, use the matching `*Item`
+selector instead of hoping the text can be split:
+
+```html
+<div class="series-genres">
+  <a href="/genres/action/">Action</a>
+  <a href="/genres/slice-of-life/">Slice of life</a>
+</div>
+```
+```ts
+details: { tagsItem: '.series-genres a' }   // → ['Action', 'Slice of life']
+```
+
+- one trimmed `textContent` per match, in document order;
+- empty labels are dropped and duplicates removed;
+- **the `*Item` field wins** when both are set. Keep the plain field too: hosts
+  that do not know the list variant still get a usable value instead of nothing.
+
+The variants are `authorsItem`, `artistsItem`, `altTitlesItem`, `tagsItem`.
 
 ### Attribution
 ```ts

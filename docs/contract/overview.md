@@ -54,6 +54,10 @@ interface ThemeSelectors {
     artists?: string;
     altTitles?: string;
     tags?: string;
+    authorsItem?: string;      // One label per matching element (wins over authors)
+    artistsItem?: string;
+    altTitlesItem?: string;
+    tagsItem?: string;
     status?: string;           // Text → normalized to MangaStatus
     contentRating?: string;    // Text → normalized to ContentRating
   };
