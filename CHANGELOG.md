@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.4.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.3.1...v1.4.0) (2026-11-16)
+
+### Features
+
+* expand the adapter contract for paid content, detail lists and API hosts ([#44](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/44)) ([a4ba937](https://github.com/BlankGrimoire/BlankGrimoire-sdk/commit/a4ba9377123ab79a7987c5a3cf115195f9037f79)), closes [#41](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/41) [#36](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/36) [#42](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/42) [#35](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/35) [#43](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/43)
+
 ## [1.3.1](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.3.0...v1.3.1) (2026-11-16)
 
 ### Bug Fixes
