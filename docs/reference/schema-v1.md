@@ -76,11 +76,20 @@ Closed unions — **no additional values allowed**. Host normalizes unknown text
     "version": { "type": "string" },
     "apiVersion": { "$ref": "#/definitions/ApiVersion" },
     "detectionSignature": { "$ref": "#/definitions/ThemeSignature" },
-    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "referrerHeaders": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "networkHosts": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
   }
 }
 ```
 - No `baseURL`, no `domains` (hosts from user SiteProfile)
+- `networkHosts` entries are host templates with one `{host}` placeholder
 - `detectionSignature` not `signature` (legacy)
 
 ### RepositoryIndex

@@ -48,6 +48,7 @@ describe('buildManifest', () => {
       },
       sha256,
       referrerHeaders: {},
+      networkHosts: [],
     });
     expect(manifest.apiVersion).toBe(1);
     expect(Object.keys(manifest)).not.toContain('signature');
@@ -71,6 +72,54 @@ describe('buildManifest', () => {
     expect(manifest.referrerHeaders).toEqual({
       'cdn.example.org': 'https://example.org/',
     });
+  });
+
+  it('publishes network host templates when provided', async () => {
+    directory = makeTempDir('blankgrimoire-manifest-');
+    const outFile = path.join(directory, 'manifest.json');
+
+    await buildManifest({
+      id: 'theme.example',
+      name: 'Example Theme',
+      version: '1.0.0',
+      detectionSignature: { selectors: ['.example-reader'], minScore: 3 },
+      sha256,
+      networkHosts: ['api.{host}', 'cdn.{host}'],
+      outFile,
+    });
+
+    const manifest = readJSON<AdapterManifest>(outFile);
+    expect(manifest.networkHosts).toEqual(['api.{host}', 'cdn.{host}']);
+  });
+
+  it('rejects a network host template without a placeholder', async () => {
+    directory = makeTempDir('blankgrimoire-manifest-');
+    await expect(
+      buildManifest({
+        id: 'theme.example',
+        name: 'Example Theme',
+        version: '1.0.0',
+        detectionSignature: { selectors: ['.example-reader'], minScore: 3 },
+        sha256,
+        networkHosts: ['api.example.org'],
+        outFile: path.join(directory, 'manifest.json'),
+      }),
+    ).rejects.toThrow(/exactly one \{host\} placeholder/);
+  });
+
+  it('rejects a network host template with a scheme or path', async () => {
+    directory = makeTempDir('blankgrimoire-manifest-');
+    await expect(
+      buildManifest({
+        id: 'theme.example',
+        name: 'Example Theme',
+        version: '1.0.0',
+        detectionSignature: { selectors: ['.example-reader'], minScore: 3 },
+        sha256,
+        networkHosts: ['https://api.{host}/v1'],
+        outFile: path.join(directory, 'manifest.json'),
+      }),
+    ).rejects.toThrow(/hostname fragment/);
   });
 
   it('rejects an invalid sha256 digest', async () => {

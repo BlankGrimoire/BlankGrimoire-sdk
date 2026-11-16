@@ -279,6 +279,7 @@ interface ThemeAdapter {
   version: string;
   detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
+  networkHosts?: string[];       // e.g. ['api.{host}']; expanded by the host
   hooks?: ThemeHooks;
 }
 
@@ -306,6 +307,8 @@ interface AdapterManifest {
   apiVersion: ApiVersion;        // 1
   detectionSignature: ThemeSignature;
   sha256: string;                // 64 lowercase hex
+  referrerHeaders?: Record<string, string>;
+  networkHosts?: string[];       // Same templates as ThemeAdapter
 }
 ```
 
