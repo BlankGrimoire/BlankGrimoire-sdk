@@ -229,11 +229,11 @@ const harness = new VMHarness(['example.org'], runtimeIIFE, adapter);
 // Test metaGenerator
 const htmlWithGen = '<html><head><meta name="generator" content="ExampleCMS v2"></head><body></body></html>';
 const result = await harness.testTheme(htmlWithGen, 'https://example.org/');
-// result.score includes +3 for generator match
+// result.score includes +30 for a generator match
 
-// Test probePaths
+// probePaths never change the score: the host fetches them only to break a tie
 server.register('/probe', async () => ({ status: 200, headers: {}, body: 'ok' }));
-// result.score includes +3 for successful probe
+// result.score is the same with or without a successful probe
 ```
 
 ## Running Tests

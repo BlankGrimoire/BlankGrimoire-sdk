@@ -46,10 +46,10 @@
 1. App fetches site HTML via native networking
 2. Calls `parseHTML(html)` → `DocumentLike`
 3. Scores `detectionSignature` against document:
-   - `metaGenerator` regex match: +3
-   - Each `selectors` match: +2
-   - Each `scriptSrc` regex match: +1
-   - Each `probePaths` 2xx response: +3
+   - `metaGenerator` regex match: +30
+   - Each `selectors` match: +15
+   - Each `scriptSrc` regex match: +20
+   - `probePaths` are not scored; the host fetches them only to break a tie
 4. If `score >= minScore` → theme detected
 
 ### 3. Extraction Calls (Host → Adapter)

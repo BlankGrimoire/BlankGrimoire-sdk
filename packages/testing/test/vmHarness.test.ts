@@ -123,7 +123,7 @@ describe('VMHarness', () => {
     });
 
     expect(result.detected).toBe(true);
-    expect(result.score).toBe(5);
+    expect(result.score).toBe(45);
     expect(result.detectionSignature.minScore).toBe(3);
     expect(result.search).toEqual({
       items: [
@@ -150,6 +150,37 @@ describe('VMHarness', () => {
       { index: 0, imageURL: 'https://example.org/pages/001.jpg' },
       { index: 1, imageURL: 'https://example.org/pages/002.jpg' },
     ]);
+  });
+
+  it('scores detection with the host weights and ignores probePaths', async () => {
+    const adapter: ThemeAdapter = {
+      ...declarativeAdapter,
+      detectionSignature: {
+        metaGenerator: '^ExampleCMS',
+        selectors: ['.example-reader'],
+        scriptSrc: ['/js/app\\.js'],
+        probePaths: ['/health'],
+        minScore: 65,
+      },
+    };
+
+    const harness = new VMHarness(['example.org'], runtimeIIFE, adapter);
+
+    const result = await harness.testTheme(
+      `<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="generator" content="ExampleCMS v2">
+    <script src="https://example.org/js/app.js"></script>
+  </head>
+  <body><div class="example-reader"></div></body>
+</html>`,
+      'https://example.org/',
+    );
+
+    // 30 (generator) + 15 (selector) + 20 (scriptSrc). A probe never scores.
+    expect(result.score).toBe(65);
+    expect(result.detected).toBe(true);
   });
 
   it('gives hooks precedence over declarative extraction', async () => {

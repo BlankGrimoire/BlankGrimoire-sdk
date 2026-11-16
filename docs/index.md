@@ -49,7 +49,7 @@ export default defineTheme({
   detectionSignature: {
     metaGenerator: '^ExampleCMS',
     selectors: ['.example-reader'],
-    minScore: 3,
+    minScore: 15,
   },
   selectors: {
     search: { path: '/search', item: '.result', title: '.result-title', link: 'a' },
