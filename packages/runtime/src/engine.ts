@@ -21,6 +21,7 @@ import {
 } from '@blankgrimoire/types';
 import type { DocumentLike, ElementLike, ParseHTML, WindowLike } from './dom.js';
 import { attr, firstAttribute, queryAll, resolveURL, textOf } from './dom.js';
+import { console } from './prelude.js';
 import { runStrategy, type StrategyEnvironment } from './strategies.js';
 
 export interface ThemeRuntimeOptions {
@@ -320,9 +321,18 @@ export async function extractChapters(
 
   const selectors = selectorsFor(runtime).chapters;
   const baseURL = runtime.context.baseURL;
+  const excludedSelector = selectors.excludeItem ?? selectors.premiumMarker;
   const chapters: Chapter[] = [];
+  let dropped = 0;
 
   for (const element of queryAll(runtime.document, selectors.item)) {
+    // A locked row is dropped before anything is read from it, so paid content
+    // never reaches the host.
+    if (excludedSelector && element.querySelector(excludedSelector)) {
+      dropped += 1;
+      continue;
+    }
+
     const link = selectLink(element, selectors.link);
     const href = link ? attr(link, 'href') : null;
     if (!href) {
@@ -355,6 +365,12 @@ export async function extractChapters(
     chapters.push(chapter);
   }
 
+  if (dropped > 0) {
+    console.log(
+      `chapters: dropped ${dropped} paid ${dropped === 1 ? 'row' : 'rows'}`,
+    );
+  }
+
   const numeric = chapters.every((chapter) => chapter.number !== undefined);
   if (numeric) {
     chapters.sort((a, b) => {
@@ -381,7 +397,13 @@ export async function extractPages(
   }
 
   const selectors = selectorsFor(runtime);
-  const environment: StrategyEnvironment = { baseURL: runtime.context.baseURL };
+  let blocked = false;
+  const environment: StrategyEnvironment = {
+    baseURL: runtime.context.baseURL,
+    onBlocked: () => {
+      blocked = true;
+    },
+  };
   if (runtime.window) {
     environment.window = runtime.window;
   }
@@ -391,6 +413,12 @@ export async function extractPages(
 
   for (const strategy of selectors.pages.strategies) {
     const pages = await runStrategy(strategy, runtime.document, environment);
+    // A paid-content guard stops extraction: falling through to another
+    // strategy could still return the locked pages.
+    if (blocked) {
+      console.log('pages: skipped, the payload is flagged as paid');
+      return [];
+    }
     if (pages.length > 0) {
       return pages;
     }

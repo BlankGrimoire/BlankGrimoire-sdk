@@ -15,6 +15,7 @@ Canonical JSON fixtures for every contract entity, published with each SDK relea
 | `attribution.json` | `Attribution` | Site credits/logo |
 | `chapter.json` | `Chapter` | Chapter with all fields |
 | `extraction-strategy.json` | `ExtractionStrategy` | CSS strategy example |
+| `extraction-strategy-script-json.json` | `ExtractionStrategy` | `scriptJSON` strategy with a paid-content guard |
 | `http-request.json` | `HttpRequest` | Sample HTTP request |
 | `http-response.json` | `HttpResponse` | Sample HTTP response |
 | `manga-details.json` | `MangaDetails` | Full details with all optional fields |
@@ -64,6 +65,16 @@ Canonical JSON fixtures for every contract entity, published with each SDK relea
   "image": ".reader img",
   "srcAttributes": ["data-src", "src"],
   "headers": { "Referer": "https://example.org/" }
+}
+```
+
+### `extraction-strategy-script-json.json`
+```json
+{
+  "kind": "scriptJSON",
+  "pattern": "__PAGES__",
+  "path": "chapter.images",
+  "skipWhen": "chapter.protected"
 }
 ```
 

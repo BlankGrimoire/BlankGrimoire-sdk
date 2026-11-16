@@ -165,6 +165,10 @@
             "pattern": {
               "description": "Regex matched against inline script text or a script `src`.",
               "type": "string"
+            },
+            "skipWhen": {
+              "description": "Dot path evaluated against the parsed payload. A truthy value means the chapter is paid or locked, so the strategy yields no pages and page extraction stops instead of trying the next strategy.",
+              "type": "string"
             }
           },
           "required": [
@@ -190,6 +194,10 @@
             },
             "path": {
               "description": "Dot path to the page array inside the hydration payload.",
+              "type": "string"
+            },
+            "skipWhen": {
+              "description": "Paid-content guard, same semantics as on `scriptJSON`.",
               "type": "string"
             }
           },
@@ -440,7 +448,7 @@
       "additionalProperties": false,
       "properties": {
         "strategies": {
-          "description": "Tried in order; the first non-empty page list wins.",
+          "description": "Tried in order; the first non-empty page list wins. A truthy `skipWhen` guard stops the whole extraction, so a paid chapter never falls through to the next strategy.",
           "items": {
             "$ref": "#/definitions/ExtractionStrategy"
           },
@@ -632,6 +640,10 @@
             "date": {
               "type": "string"
             },
+            "excludeItem": {
+              "description": "Selector evaluated **inside** every chapter row. A row where it matches is dropped before the list is returned, so locked chapters never reach the host: a coin badge, a lock icon or a premium class are all one selector.",
+              "type": "string"
+            },
             "item": {
               "type": "string"
             },
@@ -643,6 +655,10 @@
                 "asc",
                 "desc"
               ],
+              "type": "string"
+            },
+            "premiumMarker": {
+              "description": "Alias of `excludeItem` kept because adapters already ship it. When both are present, `excludeItem` wins.",
               "type": "string"
             },
             "title": {
@@ -758,6 +774,10 @@
             "date": {
               "type": "string"
             },
+            "excludeItem": {
+              "description": "Selector evaluated **inside** every chapter row. A row where it matches is dropped before the list is returned, so locked chapters never reach the host: a coin badge, a lock icon or a premium class are all one selector.",
+              "type": "string"
+            },
             "item": {
               "type": "string"
             },
@@ -769,6 +789,10 @@
                 "asc",
                 "desc"
               ],
+              "type": "string"
+            },
+            "premiumMarker": {
+              "description": "Alias of `excludeItem` kept because adapters already ship it. When both are present, `excludeItem` wins.",
               "type": "string"
             },
             "title": {
