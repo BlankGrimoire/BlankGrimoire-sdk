@@ -161,7 +161,11 @@ function readList(
       seen.add(value);
       values.push(value);
     }
-    return values.length > 0 ? values : undefined;
+    if (values.length > 0) {
+      return values;
+    }
+    // A layout variant may render the labels as one text node. Fall back to
+    // the single node instead of returning nothing.
   }
   return splitList(readText(root, singleSelector));
 }
