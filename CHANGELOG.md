@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.3.1](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.3.0...v1.3.1) (2026-11-16)
+
+### Bug Fixes
+
+* score detection like the host in the testing harness ([eb9943b](https://github.com/BlankGrimoire/BlankGrimoire-sdk/commit/eb9943b96df885039e22f3d394961d5dd054e58c)), closes [#37](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/37) [#38](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/38)
+
 ## [1.3.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.2.0...v1.3.0) (2026-11-14)
 
 ### Features
