@@ -64,6 +64,19 @@ export interface ThemeSelectors {
     artists?: string;
     altTitles?: string;
     tags?: string;
+    /**
+     * List-aware variant of `authors`. Every element matched by the selector
+     * becomes one entry, in document order, with empties and duplicates
+     * removed. When present it wins over `authors`, which stays available for
+     * hosts that do not know this field.
+     */
+    authorsItem?: string;
+    /** List-aware variant of `artists`. See `authorsItem`. */
+    artistsItem?: string;
+    /** List-aware variant of `altTitles`. See `authorsItem`. */
+    altTitlesItem?: string;
+    /** List-aware variant of `tags`. See `authorsItem`. */
+    tagsItem?: string;
     /** Text normalised by the runtime into `MangaStatus`. */
     status?: string;
     /** Text normalised by the runtime into `ContentRating`. */
@@ -75,6 +88,17 @@ export interface ThemeSelectors {
     title?: string;
     date?: string;
     order: 'asc' | 'desc';
+    /**
+     * Selector evaluated **inside** every chapter row. A row where it matches is
+     * dropped before the list is returned, so locked chapters never reach the
+     * host: a coin badge, a lock icon or a premium class are all one selector.
+     */
+    excludeItem?: string;
+    /**
+     * Alias of `excludeItem` kept because adapters already ship it. When both
+     * are present, `excludeItem` wins.
+     */
+    premiumMarker?: string;
   };
   pages: PagesConfig;
   attribution?: {
@@ -102,6 +126,18 @@ export interface ThemeAdapter {
   apiVersion?: ApiVersion;
   detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
+  /**
+   * Extra hosts this adapter contacts, written as templates relative to the
+   * site the user configured. Each entry contains exactly one `{host}`
+   * placeholder, for example `api.{host}`.
+   *
+   * The host substitutes the site host, drops a leading `www.`, and adds the
+   * result to the network policy only when it is the site host itself or a
+   * subdomain of it. An adapter can therefore reach the API of its own family
+   * without naming a domain and without widening the allowlist beyond the
+   * site.
+   */
+  networkHosts?: string[];
   /**
    * Executable escape hatch for edge cases. Hooks live only in the bundle;
    * they are not serialised into JSON.

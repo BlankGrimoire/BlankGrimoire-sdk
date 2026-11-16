@@ -11,12 +11,16 @@ export interface ScriptJSONStrategy {
   pattern: string;
   path: string;
   base64?: boolean;
+  /** Paid-content guard evaluated against the parsed payload. */
+  skipWhen?: string;
 }
 
 export interface HydrationStrategy {
   kind: 'hydration';
   framework: 'next' | 'nuxt';
   path?: string;
+  /** Paid-content guard evaluated against the parsed payload. */
+  skipWhen?: string;
 }
 
 export interface AjaxStrategy {
@@ -31,6 +35,8 @@ export interface StrategyEnvironment {
   baseURL: string;
   window?: WindowLike;
   parseHTML?: ParseHTML;
+  /** Called when a `skipWhen` guard reports paid or locked content. */
+  onBlocked?: () => void;
 }
 
 const MAX_AJAX_DEPTH = 5;
@@ -144,6 +150,29 @@ export function readPath(value: unknown, path: string): unknown {
   return current;
 }
 
+/**
+ * Evaluate a paid-content guard against a parsed payload. A guard is truthy for
+ * booleans, non-zero numbers and non-empty strings other than `"false"` and
+ * `"0"`, which is how sites mark locked entries in JSON.
+ */
+export function isPaidPayload(parsed: unknown, skipWhen: string | undefined): boolean {
+  if (!skipWhen) {
+    return false;
+  }
+  const value = readPath(parsed, skipWhen);
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value !== 0;
+  }
+  if (typeof value === 'string') {
+    const text = value.trim().toLowerCase();
+    return text !== '' && text !== 'false' && text !== '0';
+  }
+  return false;
+}
+
 function pageURLFromItem(item: unknown): string | null {
   if (typeof item === 'string') {
     return item.trim() === '' ? null : item;
@@ -197,6 +226,7 @@ export async function extractScriptJSON(
   document: DocumentLike,
   baseURL: string,
   parseHTML?: ParseHTML,
+  onBlocked?: () => void,
 ): Promise<Page[]> {
   void parseHTML;
   const regex = new RegExp(strategy.pattern);
@@ -227,6 +257,10 @@ export async function extractScriptJSON(
       const parsed = parseJSONText(decoded);
       if (parsed === undefined) {
         continue;
+      }
+      if (isPaidPayload(parsed, strategy.skipWhen)) {
+        onBlocked?.();
+        return [];
       }
       const payload = readPath(parsed, strategy.path);
       if (payload === undefined || payload === null) {
@@ -281,9 +315,14 @@ export function extractHydration(
   document: DocumentLike,
   baseURL: string,
   windowObj?: WindowLike,
+  onBlocked?: () => void,
 ): Page[] {
   const payload = hydrationPayload(strategy, document, windowObj);
   if (payload === undefined) {
+    return [];
+  }
+  if (isPaidPayload(payload, strategy.skipWhen)) {
+    onBlocked?.();
     return [];
   }
 
@@ -359,6 +398,7 @@ export async function runStrategy(
         document,
         environment.baseURL,
         environment.parseHTML,
+        environment.onBlocked,
       );
     case 'hydration':
       return extractHydration(
@@ -366,6 +406,7 @@ export async function runStrategy(
         document,
         environment.baseURL,
         environment.window,
+        environment.onBlocked,
       );
     case 'ajax':
       return extractAjax(strategy as AjaxStrategy, document, environment, depth);

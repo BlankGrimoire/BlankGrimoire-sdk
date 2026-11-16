@@ -258,7 +258,7 @@ import { buildBundle, buildManifest, signBundle, buildIndexJson } from '@blankgr
 await buildBundle({ entry: 'src/index.ts', outdir: 'dist', minify: true });
 const hash = await hashFile('dist/runtime.js');
 const sig = await signBundle({ privateKey: pem, data: bundleBuffer, outFile: 'dist/runtime.sig' });
-await buildManifest({ id: 'theme.example', name: 'Example', version: '1.0.0', detectionSignature, sha256: hash, outFile: 'dist/manifest.json' });
+await buildManifest({ id: 'theme.example', name: 'Example', version: '1.0.0', detectionSignature, sha256: hash, networkHosts: ['api.{host}'], outFile: 'dist/manifest.json' });
 await buildIndexJson({ name: 'Repo', publicKey: 'ed25519:...', extensions, outFile: 'public/index.json' });
 ```
 

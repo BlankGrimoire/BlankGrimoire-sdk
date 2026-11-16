@@ -52,6 +52,8 @@ details: {
   artists: '.series-artists',        // Optional (comma-separated)
   altTitles: '.series-alt-titles',   // Optional (comma-separated)
   tags: '.series-tags',              // Optional (comma-separated)
+  authorsItem: '.series-authors li', // Optional: one label per element
+  tagsItem: '.series-genres a',      // Optional: wins over tags
   status: '.series-status',          // Text → normalized to MangaStatus
   contentRating: '.series-rating',   // Text → normalized to ContentRating
 }
@@ -74,6 +76,26 @@ details: {
 ### Split Lists
 `authors`, `artists`, `altTitles`, `tags` — split by `,`, `|`, or newline, trimmed, empty filtered.
 
+When the page renders **one element per label**, use the matching `*Item`
+selector instead of hoping the text can be split:
+
+```html
+<div class="series-genres">
+  <a href="/genres/action/">Action</a>
+  <a href="/genres/slice-of-life/">Slice of life</a>
+</div>
+```
+```ts
+details: { tagsItem: '.series-genres a' }   // → ['Action', 'Slice of life']
+```
+
+- one trimmed `textContent` per match, in document order;
+- empty labels are dropped and duplicates removed;
+- **the `*Item` field wins** when both are set. Keep the plain field too: hosts
+  that do not know the list variant still get a usable value instead of nothing.
+
+The variants are `authorsItem`, `artistsItem`, `altTitlesItem`, `tagsItem`.
+
 ### Attribution
 ```ts
 attribution: {
@@ -92,6 +114,7 @@ chapters: {
   title: '.chapter-title',     // Optional: chapter title
   date: '.chapter-date',       // Optional: publication date
   order: 'desc',               // 'asc' or 'desc'
+  excludeItem: '.coin-badge',  // Optional: drop rows that contain this
 }
 ```
 
@@ -101,6 +124,31 @@ chapters: {
 3. `number` parsed from title via regex `(\d+(?:\.\d+)?)`
 4. `date` parsed via `Date.parse()` → ISO string
 5. **Sort**: if all have `number` → numeric sort; else reverse for `asc`
+
+### Paid and locked chapters
+
+`excludeItem` is evaluated **inside** each row before anything else is read. A
+row where it matches is dropped, so a locked chapter never reaches the host and
+the adapter does not need `:not(:has(...))` or any other host-specific selector
+feature:
+
+```ts
+chapters: {
+  item: '.chapter-list li',
+  link: 'a',
+  excludeItem: '.coin-badge, .lock-icon, [class*="premium"]',
+}
+```
+
+The runtime logs how many rows were dropped, so "everything was paid" can be
+told apart from "the selectors broke":
+
+```text
+chapters: dropped 2 paid rows
+```
+
+`premiumMarker` is an alias kept for adapters that already ship it. When both are
+present, `excludeItem` wins.
 
 ### Tips
 - Use `order: 'desc'` for newest-first (typical)
@@ -121,6 +169,29 @@ pages: {
 
 **Execution**: Strategies tried **in order**; first returning ≥1 page wins.
 
+### Paid-content guards
+
+`scriptJSON` and `hydration` accept a `skipWhen` dot path evaluated against the
+parsed payload. When the value is truthy the chapter is treated as paid:
+
+- the strategy returns no pages;
+- **extraction stops** instead of trying the next strategy, so a CSS fallback
+  cannot return the teaser images;
+- the runtime logs `pages: skipped, the payload is flagged as paid`.
+
+```ts
+{
+  kind: 'scriptJSON',
+  pattern: 'window.__CHAPTER__',
+  path: 'chapter.images',
+  skipWhen: 'chapter.protected',   // true → no pages
+}
+```
+
+Truthy means `true`, a non-zero number, or a non-empty string other than
+`"false"` and `"0"`. For an `ajax` strategy the guard belongs on the nested
+`then` strategy; it propagates to the outer call.
+
 ### CSS Strategy
 ```ts
 { kind: 'css', image: '.reader img', srcAttributes: ['data-src', 'src'], headers?: {...} }
@@ -131,7 +202,7 @@ pages: {
 
 ### ScriptJSON Strategy
 ```ts
-{ kind: 'scriptJSON', pattern: 'window.__PAGES__', path: 'pages', base64?: false }
+{ kind: 'scriptJSON', pattern: 'window.__PAGES__', path: 'pages', base64?: false, skipWhen?: 'protected' }
 ```
 - Searches all `<script>` elements
 - Matches `pattern` against script `textContent` or `src` attribute
@@ -142,7 +213,7 @@ pages: {
 
 ### Hydration Strategy
 ```ts
-{ kind: 'hydration', framework: 'next' | 'nuxt', path?: string }
+{ kind: 'hydration', framework: 'next' | 'nuxt', path?: string, skipWhen?: 'props.pageProps.isPremium' }
 ```
 - Checks `window.__NEXT_DATA__` or `window.__NUXT__`
 - Falls back to `#__NEXT_DATA__` / `#__NUXT_DATA__` script tags

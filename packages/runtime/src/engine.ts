@@ -21,6 +21,7 @@ import {
 } from '@blankgrimoire/types';
 import type { DocumentLike, ElementLike, ParseHTML, WindowLike } from './dom.js';
 import { attr, firstAttribute, queryAll, resolveURL, textOf } from './dom.js';
+import { console } from './prelude.js';
 import { runStrategy, type StrategyEnvironment } from './strategies.js';
 
 export interface ThemeRuntimeOptions {
@@ -137,6 +138,32 @@ function splitList(value: string | undefined): string[] | undefined {
     .map((item) => item.trim())
     .filter((item) => item !== '');
   return items.length > 0 ? items : undefined;
+}
+
+/**
+ * Read a list of labels. A list selector (`*Item`) collects every match in
+ * document order, dropping empty values and duplicates; otherwise the single
+ * node selector is split on the usual separators.
+ */
+function readList(
+  root: DocumentLike | ElementLike,
+  listSelector: string | undefined,
+  singleSelector: string | undefined,
+): string[] | undefined {
+  if (listSelector) {
+    const values: string[] = [];
+    const seen = new Set<string>();
+    for (const element of queryAll(root, listSelector)) {
+      const value = textOf(element);
+      if (value === '' || seen.has(value)) {
+        continue;
+      }
+      seen.add(value);
+      values.push(value);
+    }
+    return values.length > 0 ? values : undefined;
+  }
+  return splitList(readText(root, singleSelector));
 }
 
 /** Normalise site text into the closed `MangaStatus` union. */
@@ -270,19 +297,23 @@ export async function extractDetails(
     }
   }
 
-  const altTitles = splitList(readText(document, detailsSelectors.altTitles));
+  const altTitles = readList(
+    document,
+    detailsSelectors.altTitlesItem,
+    detailsSelectors.altTitles,
+  );
   if (altTitles) {
     details.altTitles = altTitles;
   }
-  const authors = splitList(readText(document, detailsSelectors.authors));
+  const authors = readList(document, detailsSelectors.authorsItem, detailsSelectors.authors);
   if (authors) {
     details.authors = authors;
   }
-  const artists = splitList(readText(document, detailsSelectors.artists));
+  const artists = readList(document, detailsSelectors.artistsItem, detailsSelectors.artists);
   if (artists) {
     details.artists = artists;
   }
-  const tags = splitList(readText(document, detailsSelectors.tags));
+  const tags = readList(document, detailsSelectors.tagsItem, detailsSelectors.tags);
   if (tags) {
     details.tags = tags;
   }
@@ -320,9 +351,18 @@ export async function extractChapters(
 
   const selectors = selectorsFor(runtime).chapters;
   const baseURL = runtime.context.baseURL;
+  const excludedSelector = selectors.excludeItem ?? selectors.premiumMarker;
   const chapters: Chapter[] = [];
+  let dropped = 0;
 
   for (const element of queryAll(runtime.document, selectors.item)) {
+    // A locked row is dropped before anything is read from it, so paid content
+    // never reaches the host.
+    if (excludedSelector && element.querySelector(excludedSelector)) {
+      dropped += 1;
+      continue;
+    }
+
     const link = selectLink(element, selectors.link);
     const href = link ? attr(link, 'href') : null;
     if (!href) {
@@ -355,6 +395,12 @@ export async function extractChapters(
     chapters.push(chapter);
   }
 
+  if (dropped > 0) {
+    console.log(
+      `chapters: dropped ${dropped} paid ${dropped === 1 ? 'row' : 'rows'}`,
+    );
+  }
+
   const numeric = chapters.every((chapter) => chapter.number !== undefined);
   if (numeric) {
     chapters.sort((a, b) => {
@@ -381,7 +427,13 @@ export async function extractPages(
   }
 
   const selectors = selectorsFor(runtime);
-  const environment: StrategyEnvironment = { baseURL: runtime.context.baseURL };
+  let blocked = false;
+  const environment: StrategyEnvironment = {
+    baseURL: runtime.context.baseURL,
+    onBlocked: () => {
+      blocked = true;
+    },
+  };
   if (runtime.window) {
     environment.window = runtime.window;
   }
@@ -391,6 +443,12 @@ export async function extractPages(
 
   for (const strategy of selectors.pages.strategies) {
     const pages = await runStrategy(strategy, runtime.document, environment);
+    // A paid-content guard stops extraction: falling through to another
+    // strategy could still return the locked pages.
+    if (blocked) {
+      console.log('pages: skipped, the payload is flagged as paid');
+      return [];
+    }
     if (pages.length > 0) {
       return pages;
     }

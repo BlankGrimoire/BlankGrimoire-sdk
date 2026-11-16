@@ -76,11 +76,20 @@ Closed unions — **no additional values allowed**. Host normalizes unknown text
     "version": { "type": "string" },
     "apiVersion": { "$ref": "#/definitions/ApiVersion" },
     "detectionSignature": { "$ref": "#/definitions/ThemeSignature" },
-    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "referrerHeaders": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "networkHosts": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
   }
 }
 ```
 - No `baseURL`, no `domains` (hosts from user SiteProfile)
+- `networkHosts` entries are host templates with one `{host}` placeholder
 - `detectionSignature` not `signature` (legacy)
 
 ### RepositoryIndex
@@ -184,7 +193,8 @@ Closed unions — **no additional values allowed**. Host normalizes unknown text
     "kind": { "const": "scriptJSON" },
     "pattern": { "type": "string" },
     "path": { "type": "string" },
-    "base64": { "type": "boolean" }
+    "base64": { "type": "boolean" },
+    "skipWhen": { "type": "string" }
   }
 }
 ```
@@ -197,7 +207,8 @@ Closed unions — **no additional values allowed**. Host normalizes unknown text
   "properties": {
     "kind": { "const": "hydration" },
     "framework": { "enum": ["next", "nuxt"] },
-    "path": { "type": "string" }
+    "path": { "type": "string" },
+    "skipWhen": { "type": "string" }
   }
 }
 ```

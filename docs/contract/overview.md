@@ -54,6 +54,10 @@ interface ThemeSelectors {
     artists?: string;
     altTitles?: string;
     tags?: string;
+    authorsItem?: string;      // One label per matching element (wins over authors)
+    artistsItem?: string;
+    altTitlesItem?: string;
+    tagsItem?: string;
     status?: string;           // Text → normalized to MangaStatus
     contentRating?: string;    // Text → normalized to ContentRating
   };
@@ -63,6 +67,8 @@ interface ThemeSelectors {
     title?: string;            // Chapter title selector
     date?: string;             // Publication date selector
     order: 'asc' | 'desc';     // Sort order
+    excludeItem?: string;      // Rows where this matches inside the row are dropped
+    premiumMarker?: string;    // Alias of excludeItem kept for shipped adapters
   };
   pages: PagesConfig;          // Array of extraction strategies
   attribution?: {
@@ -106,6 +112,7 @@ interface ThemeAdapter {
   apiVersion?: 1;                // Attached by defineTheme; required at runtime
   detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
+  networkHosts?: string[];       // Extra hosts for hooks, e.g. ['api.{host}']
   hooks?: ThemeHooks;            // Optional
 }
 // defineTheme(adapter) attaches { apiVersion: 1 }
@@ -114,6 +121,43 @@ interface ThemeAdapter {
 The runtime throws `UnsupportedApiVersionError` when an adapter does not
 declare `apiVersion: 1`. The iOS host performs the same check when it loads a
 bundle and when it decodes a manifest.
+
+### Paid Content (Rule 9)
+
+Adapters must never extract chapters or pages behind a paywall. The contract
+makes that declarative instead of leaving it to per-adapter selector tricks:
+
+- `chapters.excludeItem` drops rows where the selector matches **inside** the
+  row. `premiumMarker` is accepted as an alias for adapters that already ship it;
+  when both are present, `excludeItem` wins.
+- `scriptJSON` and `hydration` accept `skipWhen`, a dot path read from the same
+  payload that carries the images. A truthy value yields no pages and **stops**
+  page extraction, so a later strategy cannot return the locked images.
+- Dropped rows and blocked payloads are reported through the log bridge.
+
+### Network Hosts
+
+Some adapter families fetch their chapter list from a JSON API. When that API
+lives on another host, hooks are blocked by the host's network policy, which by
+default allows only the site the user configured.
+
+`networkHosts` declares those hosts without naming a domain. Each entry is a
+host template with exactly one `{host}` placeholder:
+
+```ts
+networkHosts: ["api.{host}"]   // api.<site host>
+```
+
+- The host replaces `{host}` with the site host, dropping a leading `www.`.
+- The expansion is allowed only when it is the site host itself or a subdomain
+  of it, so a template can never widen the allowlist beyond the site.
+- The expanded hosts are added to the policy for hooks only. Detection, page
+  extraction and manifest validation still use the site URL.
+- Templates must not contain a scheme, port or path; the CLI rejects them.
+
+Without this field a hook can only reach the site origin. A cross-host API
+call then fails with a host-not-allowed error instead of silently returning
+nothing.
 
 ### SiteContext (Host → Adapter)
 ```ts
@@ -243,6 +287,8 @@ interface AdapterManifest {
   apiVersion: ApiVersion;        // Always 1
   detectionSignature: ThemeSignature;
   sha256: string;                // 64 lowercase hex chars
+  referrerHeaders?: Record<string, string>;
+  networkHosts?: string[];       // Same templates as ThemeAdapter
 }
 ```
 

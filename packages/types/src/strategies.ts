@@ -25,12 +25,20 @@ export type ExtractionStrategy =
       path: string;
       /** Decode the script text from base64 before parsing. */
       base64?: boolean;
+      /**
+       * Dot path evaluated against the parsed payload. A truthy value means the
+       * chapter is paid or locked, so the strategy yields no pages and page
+       * extraction stops instead of trying the next strategy.
+       */
+      skipWhen?: string;
     }
   | {
       kind: 'hydration';
       framework: 'next' | 'nuxt';
       /** Dot path to the page array inside the hydration payload. */
       path?: string;
+      /** Paid-content guard, same semantics as on `scriptJSON`. */
+      skipWhen?: string;
     }
   | {
       kind: 'ajax';
@@ -43,6 +51,10 @@ export type ExtractionStrategy =
     };
 
 export interface PagesConfig {
-  /** Tried in order; the first non-empty page list wins. */
+  /**
+   * Tried in order; the first non-empty page list wins. A truthy `skipWhen`
+   * guard stops the whole extraction, so a paid chapter never falls through to
+   * the next strategy.
+   */
   strategies: ExtractionStrategy[];
 }

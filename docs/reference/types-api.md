@@ -166,12 +166,14 @@ interface ScriptJSONStrategy {
   pattern: string;
   path: string;
   base64?: boolean;
+  skipWhen?: string;        // Dot path; truthy → paid, no pages
 }
 
 interface HydrationStrategy {
   kind: 'hydration';
   framework: 'next' | 'nuxt';
   path?: string;
+  skipWhen?: string;        // Dot path; truthy → paid, no pages
 }
 
 interface AjaxStrategy {
@@ -188,6 +190,7 @@ interface StrategyEnvironment {
   baseURL: string;
   window?: WindowLike;
   parseHTML?: ParseHTML;
+  onBlocked?: () => void;   // A skipWhen guard reported paid content
 }
 ```
 
@@ -223,6 +226,10 @@ interface ThemeSelectors {
     artists?: string;
     altTitles?: string;
     tags?: string;
+    altTitlesItem?: string;   // One label per match; wins over altTitles
+    authorsItem?: string;
+    artistsItem?: string;
+    tagsItem?: string;
     status?: string;
     contentRating?: string;
   };
@@ -232,6 +239,8 @@ interface ThemeSelectors {
     title?: string;
     date?: string;
     order: 'asc' | 'desc';
+    excludeItem?: string;    // Rows where this matches inside are dropped
+    premiumMarker?: string;  // Alias of excludeItem for shipped adapters
   };
   pages: PagesConfig;
   attribution?: {
@@ -270,6 +279,7 @@ interface ThemeAdapter {
   version: string;
   detectionSignature: ThemeSignature;
   selectors: ThemeSelectors;
+  networkHosts?: string[];       // e.g. ['api.{host}']; expanded by the host
   hooks?: ThemeHooks;
 }
 
@@ -297,6 +307,8 @@ interface AdapterManifest {
   apiVersion: ApiVersion;        // 1
   detectionSignature: ThemeSignature;
   sha256: string;                // 64 lowercase hex
+  referrerHeaders?: Record<string, string>;
+  networkHosts?: string[];       // Same templates as ThemeAdapter
 }
 ```
 

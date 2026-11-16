@@ -18,6 +18,13 @@
         "name": {
           "type": "string"
         },
+        "networkHosts": {
+          "description": "Host templates the adapter's hooks contact, relative to the site host, for example `api.{host}`. The host expands them against the configured site and adds them to the network policy. See `ThemeAdapter.networkHosts`.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "referrerHeaders": {
           "additionalProperties": {
             "type": "string"
@@ -165,6 +172,10 @@
             "pattern": {
               "description": "Regex matched against inline script text or a script `src`.",
               "type": "string"
+            },
+            "skipWhen": {
+              "description": "Dot path evaluated against the parsed payload. A truthy value means the chapter is paid or locked, so the strategy yields no pages and page extraction stops instead of trying the next strategy.",
+              "type": "string"
             }
           },
           "required": [
@@ -190,6 +201,10 @@
             },
             "path": {
               "description": "Dot path to the page array inside the hydration payload.",
+              "type": "string"
+            },
+            "skipWhen": {
+              "description": "Paid-content guard, same semantics as on `scriptJSON`.",
               "type": "string"
             }
           },
@@ -440,7 +455,7 @@
       "additionalProperties": false,
       "properties": {
         "strategies": {
-          "description": "Tried in order; the first non-empty page list wins.",
+          "description": "Tried in order; the first non-empty page list wins. A truthy `skipWhen` guard stops the whole extraction, so a paid chapter never falls through to the next strategy.",
           "items": {
             "$ref": "#/definitions/ExtractionStrategy"
           },
@@ -591,6 +606,13 @@
         "name": {
           "type": "string"
         },
+        "networkHosts": {
+          "description": "Extra hosts this adapter contacts, written as templates relative to the site the user configured. Each entry contains exactly one `{host}` placeholder, for example `api.{host}`.\n\nThe host substitutes the site host, drops a leading `www.`, and adds the result to the network policy only when it is the site host itself or a subdomain of it. An adapter can therefore reach the API of its own family without naming a domain and without widening the allowlist beyond the site.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
         "selectors": {
           "$ref": "#/definitions/ThemeSelectors"
         },
@@ -632,6 +654,10 @@
             "date": {
               "type": "string"
             },
+            "excludeItem": {
+              "description": "Selector evaluated **inside** every chapter row. A row where it matches is dropped before the list is returned, so locked chapters never reach the host: a coin badge, a lock icon or a premium class are all one selector.",
+              "type": "string"
+            },
             "item": {
               "type": "string"
             },
@@ -643,6 +669,10 @@
                 "asc",
                 "desc"
               ],
+              "type": "string"
+            },
+            "premiumMarker": {
+              "description": "Alias of `excludeItem` kept because adapters already ship it. When both are present, `excludeItem` wins.",
               "type": "string"
             },
             "title": {
@@ -662,10 +692,22 @@
             "altTitles": {
               "type": "string"
             },
+            "altTitlesItem": {
+              "description": "List-aware variant of `altTitles`. See `authorsItem`.",
+              "type": "string"
+            },
             "artists": {
               "type": "string"
             },
+            "artistsItem": {
+              "description": "List-aware variant of `artists`. See `authorsItem`.",
+              "type": "string"
+            },
             "authors": {
+              "type": "string"
+            },
+            "authorsItem": {
+              "description": "List-aware variant of `authors`. Every element matched by the selector becomes one entry, in document order, with empties and duplicates removed. When present it wins over `authors`, which stays available for hosts that do not know this field.",
               "type": "string"
             },
             "contentRating": {
@@ -683,6 +725,10 @@
               "type": "string"
             },
             "tags": {
+              "type": "string"
+            },
+            "tagsItem": {
+              "description": "List-aware variant of `tags`. See `authorsItem`.",
               "type": "string"
             },
             "title": {
@@ -758,6 +804,10 @@
             "date": {
               "type": "string"
             },
+            "excludeItem": {
+              "description": "Selector evaluated **inside** every chapter row. A row where it matches is dropped before the list is returned, so locked chapters never reach the host: a coin badge, a lock icon or a premium class are all one selector.",
+              "type": "string"
+            },
             "item": {
               "type": "string"
             },
@@ -769,6 +819,10 @@
                 "asc",
                 "desc"
               ],
+              "type": "string"
+            },
+            "premiumMarker": {
+              "description": "Alias of `excludeItem` kept because adapters already ship it. When both are present, `excludeItem` wins.",
               "type": "string"
             },
             "title": {
@@ -783,10 +837,22 @@
             "altTitles": {
               "type": "string"
             },
+            "altTitlesItem": {
+              "description": "List-aware variant of `altTitles`. See `authorsItem`.",
+              "type": "string"
+            },
             "artists": {
               "type": "string"
             },
+            "artistsItem": {
+              "description": "List-aware variant of `artists`. See `authorsItem`.",
+              "type": "string"
+            },
             "authors": {
+              "type": "string"
+            },
+            "authorsItem": {
+              "description": "List-aware variant of `authors`. Every element matched by the selector becomes one entry, in document order, with empties and duplicates removed. When present it wins over `authors`, which stays available for hosts that do not know this field.",
               "type": "string"
             },
             "contentRating": {
@@ -804,6 +870,10 @@
               "type": "string"
             },
             "tags": {
+              "type": "string"
+            },
+            "tagsItem": {
+              "description": "List-aware variant of `tags`. See `authorsItem`.",
               "type": "string"
             },
             "title": {

@@ -146,19 +146,22 @@ details = {
   contentRating: normalizeContentRating(readText(doc, selectors.contentRating)),
   coverURL: readImageURL(doc, selectors.cover, baseURL),
   synopsis: readText(doc, selectors.synopsis),
-  altTitles: splitList(readText(doc, selectors.altTitles)),
-  authors: splitList(readText(doc, selectors.authors)),
-  artists: splitList(readText(doc, selectors.artists)),
-  tags: splitList(readText(doc, selectors.tags)),
+  altTitles: readList(doc, selectors.altTitlesItem, selectors.altTitles),
+  authors: readList(doc, selectors.authorsItem, selectors.authors),
+  artists: readList(doc, selectors.artistsItem, selectors.artists),
+  tags: readList(doc, selectors.tagsItem, selectors.tags),
   attribution: { siteName, siteURL, logoURL?, credits? }
 }
 ```
+`readList` collects every match of the `*Item` selector (document order,
+deduplicated) and falls back to splitting a single node on `,`, `|` or newline.
 **Hook**: `adapter.hooks?.getMangaDetails(ctx, key)`
 
 ### 3. Chapters
 ```ts
 // Declarative (ThemeSelectors.chapters)
 for each item matching selectors.item:
+  if excludeItem (or premiumMarker) matches inside the row: skip it
   href = attr(item.querySelector(selectors.link), 'href')
   key = resolveURL(href, baseURL)
   title = selectors.title ? readText(item, selectors.title) : textOf(link)
@@ -168,6 +171,8 @@ for each item matching selectors.item:
 
 Sort: if all have number → numeric sort (asc/desc)
        else → reverse for asc
+
+Dropped rows are reported as `chapters: dropped N paid rows`.
 ```
 **Hook**: `adapter.hooks?.getChapters(ctx, key)`
 
@@ -175,7 +180,8 @@ Sort: if all have number → numeric sort (asc/desc)
 ```ts
 // ThemeSelectors.pages.strategies = ExtractionStrategy[]
 for each strategy in order:
-  pages = await runStrategy(strategy, document, { baseURL, window?, parseHTML? })
+  pages = await runStrategy(strategy, document, { baseURL, window?, parseHTML?, onBlocked })
+  if a skipWhen guard reported paid content: return []   // no fallback
   if pages.length > 0: return pages
 return []
 ```
@@ -192,20 +198,22 @@ return []
 
 ### ScriptJSON Strategy
 ```ts
-{ kind: 'scriptJSON', pattern: 'window.__PAGES__', path: 'pages', base64?: false }
+{ kind: 'scriptJSON', pattern: 'window.__PAGES__', path: 'pages', base64?: false, skipWhen?: 'protected' }
 ```
 - Searches `<script>` elements (inline text or `src` fetch)
 - Regex `pattern` matches script content or src
 - Parses JSON, follows `path` (dot/bracket notation)
 - Normalizes to `Page[]` via `toPages()`
+- A truthy `skipWhen` path stops extraction: the chapter is paid
 
 ### Hydration Strategy
 ```ts
-{ kind: 'hydration', framework: 'next' | 'nuxt', path?: 'props.pageProps.pages' }
+{ kind: 'hydration', framework: 'next' | 'nuxt', path?: 'props.pageProps.pages', skipWhen?: 'props.pageProps.isPremium' }
 ```
 - Checks `window.__NEXT_DATA__` or `window.__NUXT__`
 - Falls back to `#__NEXT_DATA__` / `#__NUXT_DATA__` script tags
 - Follows optional `path` to page array
+- A truthy `skipWhen` path stops extraction: the chapter is paid
 
 ### AJAX Strategy
 ```ts

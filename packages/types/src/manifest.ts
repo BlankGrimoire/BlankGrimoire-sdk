@@ -23,6 +23,12 @@ export interface AdapterManifest {
   sha256: string;
   /** Optional referrer headers for CDN domains that require an origin Referer. */
   referrerHeaders?: Record<string, string>;
+  /**
+   * Host templates the adapter's hooks contact, relative to the site host,
+   * for example `api.{host}`. The host expands them against the configured
+   * site and adds them to the network policy. See `ThemeAdapter.networkHosts`.
+   */
+  networkHosts?: string[];
 }
 
 export interface RepositoryIndex {

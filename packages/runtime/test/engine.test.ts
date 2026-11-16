@@ -216,6 +216,89 @@ describe('extractDetails', () => {
     expect(details.status).toBe('unknown');
     expect(details.contentRating).toBe('unknown');
   });
+
+  it('reads every label from a list of sibling anchors', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body>' +
+          '<h1 class="series-title">Lorem</h1>' +
+          '<div class="series-genres">' +
+          '<a href="/genres/action/">Action</a>' +
+          '<a href="/genres/slice-of-life/">Slice of life</a>' +
+          '<span class="genre">Drama</span>' +
+          '<a href="/genres/empty/">   </a>' +
+          '<a href="/genres/action/">Action</a>' +
+          '</div>' +
+          '</body></html>',
+        {
+          overrides: {
+            details: { tagsItem: '.series-genres a, .series-genres .genre' },
+          },
+        },
+      ),
+      'lorem',
+    );
+
+    // Document order, empty labels dropped, duplicates removed.
+    expect(details.tags).toEqual(['Action', 'Slice of life', 'Drama']);
+  });
+
+  it('applies list selectors to authors, artists and alt titles', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body>' +
+          '<h1 class="series-title">Lorem</h1>' +
+          '<ul class="authors"><li>Lorem Author</li><li>Ipsum Author</li></ul>' +
+          '<ul class="artists"><li>Dolor Artist</li></ul>' +
+          '<ul class="alt-titles"><li>Dolor Sit</li><li>Amet Elit</li></ul>' +
+          '</body></html>',
+        {
+          overrides: {
+            details: {
+              authorsItem: '.authors li',
+              artistsItem: '.artists li',
+              altTitlesItem: '.alt-titles li',
+            },
+          },
+        },
+      ),
+      'lorem',
+    );
+
+    expect(details.authors).toEqual(['Lorem Author', 'Ipsum Author']);
+    expect(details.artists).toEqual(['Dolor Artist']);
+    expect(details.altTitles).toEqual(['Dolor Sit', 'Amet Elit']);
+  });
+
+  it('prefers the list selector when both fields are set', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body>' +
+          '<h1 class="series-title">Lorem</h1>' +
+          '<p class="series-tags">Ignored, Labels</p>' +
+          '<div class="series-genres"><a href="/genres/action/">Action</a></div>' +
+          '</body></html>',
+        {
+          overrides: { details: { tagsItem: '.series-genres a' } },
+        },
+      ),
+      'lorem',
+    );
+
+    expect(details.tags).toEqual(['Action']);
+  });
+
+  it('keeps splitting a single node when no list selector is set', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body><h1 class="series-title">Lorem</h1>' +
+          '<p class="series-tags">Action, Drama | Fantasy</p></body></html>',
+      ),
+      'lorem',
+    );
+
+    expect(details.tags).toEqual(['Action', 'Drama', 'Fantasy']);
+  });
 });
 
 describe('normalisation helpers', () => {
@@ -276,6 +359,83 @@ describe('extractChapters', () => {
     ]);
     expect(chapters.map((chapter) => chapter.title)).toEqual(['Chapter 1', 'Chapter 2']);
   });
+
+  it('drops paid rows declared with excludeItem', async () => {
+    const chapters = await extractChapters(
+      runtime(
+        '<html><body>' +
+          '<div class="chapter"><a href="/ch/1">Chapter 1</a></div>' +
+          '<div class="chapter"><a href="/ch/2">Chapter 2</a><span class="coin-badge">20</span></div>' +
+          '<div class="chapter"><a href="/ch/3">Chapter 3</a></div>' +
+          '</body></html>',
+        { overrides: { chapters: { excludeItem: '.coin-badge' } } },
+      ),
+      'lorem',
+    );
+
+    expect(chapters.map((chapter) => chapter.key)).toEqual([
+      'https://example.org/ch/1',
+      'https://example.org/ch/3',
+    ]);
+  });
+
+  it('honours the premiumMarker alias shipped by adapters', async () => {
+    const chapters = await extractChapters(
+      runtime(
+        '<html><body>' +
+          '<div class="chapter"><a href="/ch/1">Chapter 1</a></div>' +
+          '<div class="chapter"><a href="/ch/2">Chapter 2</a><i class="lock-icon"></i></div>' +
+          '</body></html>',
+        { overrides: { chapters: { premiumMarker: '[class*="premium"], .lock-icon' } } },
+      ),
+      'lorem',
+    );
+
+    expect(chapters.map((chapter) => chapter.key)).toEqual(['https://example.org/ch/1']);
+  });
+
+  it('prefers excludeItem when both exclusion selectors are set', async () => {
+    const chapters = await extractChapters(
+      runtime(
+        '<html><body>' +
+          '<div class="chapter"><a href="/ch/1">Chapter 1</a><span class="coin-badge">20</span></div>' +
+          '<div class="chapter"><a href="/ch/2">Chapter 2</a><span class="draft">Draft</span></div>' +
+          '</body></html>',
+        {
+          overrides: {
+            chapters: { excludeItem: '.coin-badge', premiumMarker: '.draft' },
+          },
+        },
+      ),
+      'lorem',
+    );
+
+    expect(chapters.map((chapter) => chapter.key)).toEqual(['https://example.org/ch/2']);
+  });
+
+  it('reports the dropped rows through the log bridge', async () => {
+    const messages: string[] = [];
+    (globalThis as unknown as { __native?: Record<string, unknown> }).__native = {
+      log: (...args: unknown[]) => messages.push(args.map(String).join(' ')),
+    };
+
+    try {
+      await extractChapters(
+        runtime(
+          '<html><body>' +
+            '<div class="chapter"><a href="/ch/1">Chapter 1</a></div>' +
+            '<div class="chapter"><a href="/ch/2">Chapter 2</a><span class="coin-badge">20</span></div>' +
+            '</body></html>',
+          { overrides: { chapters: { excludeItem: '.coin-badge' } } },
+        ),
+        'lorem',
+      );
+    } finally {
+      delete (globalThis as unknown as { __native?: unknown }).__native;
+    }
+
+    expect(messages).toContain('chapters: dropped 1 paid row');
+  });
 });
 
 describe('extractPages', () => {
@@ -310,6 +470,68 @@ describe('extractPages', () => {
       { mangaKey: 'lorem', chapterKey: 'chapter-1' },
     );
     expect(pages[0]?.imageURL).toBe('https://example.org/override.jpg');
+  });
+
+  it('stops extraction when a payload is flagged as paid', async () => {
+    const pages = await extractPages(
+      runtime(
+        '<html><body>' +
+          `<script>window.__DATA__ = ${JSON.stringify({
+            chapter: { images: ['/teaser.jpg'], protected: true },
+          })}</script>` +
+          '<div class="reader"><img src="/teaser.jpg" /></div>' +
+          '</body></html>',
+        {
+          overrides: {
+            pages: {
+              strategies: [
+                {
+                  kind: 'scriptJSON',
+                  pattern: '__DATA__',
+                  path: 'chapter.images',
+                  skipWhen: 'chapter.protected',
+                },
+                { kind: 'css', image: '.reader img', srcAttributes: ['src'] },
+              ],
+            },
+          },
+        },
+      ),
+      { mangaKey: 'lorem', chapterKey: 'chapter-1' },
+    );
+
+    // The CSS strategy would have matched the teaser image; the guard stops the
+    // whole extraction instead of falling through.
+    expect(pages).toEqual([]);
+  });
+
+  it('extracts pages when the paid-content guard is false', async () => {
+    const pages = await extractPages(
+      runtime(
+        '<html><body>' +
+          `<script>window.__DATA__ = ${JSON.stringify({
+            chapter: { images: ['/001.jpg'], protected: false },
+          })}</script>` +
+          '</body></html>',
+        {
+          overrides: {
+            pages: {
+              strategies: [
+                {
+                  kind: 'scriptJSON',
+                  pattern: '__DATA__',
+                  path: 'chapter.images',
+                  skipWhen: 'chapter.protected',
+                },
+              ],
+            },
+          },
+        },
+      ),
+      { mangaKey: 'lorem', chapterKey: 'chapter-1' },
+    );
+
+    expect(pages).toEqual([{ index: 0, imageURL: 'https://example.org/001.jpg' }]);
   });
 });
 
