@@ -216,6 +216,89 @@ describe('extractDetails', () => {
     expect(details.status).toBe('unknown');
     expect(details.contentRating).toBe('unknown');
   });
+
+  it('reads every label from a list of sibling anchors', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body>' +
+          '<h1 class="series-title">Lorem</h1>' +
+          '<div class="series-genres">' +
+          '<a href="/genres/action/">Action</a>' +
+          '<a href="/genres/slice-of-life/">Slice of life</a>' +
+          '<span class="genre">Drama</span>' +
+          '<a href="/genres/empty/">   </a>' +
+          '<a href="/genres/action/">Action</a>' +
+          '</div>' +
+          '</body></html>',
+        {
+          overrides: {
+            details: { tagsItem: '.series-genres a, .series-genres .genre' },
+          },
+        },
+      ),
+      'lorem',
+    );
+
+    // Document order, empty labels dropped, duplicates removed.
+    expect(details.tags).toEqual(['Action', 'Slice of life', 'Drama']);
+  });
+
+  it('applies list selectors to authors, artists and alt titles', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body>' +
+          '<h1 class="series-title">Lorem</h1>' +
+          '<ul class="authors"><li>Lorem Author</li><li>Ipsum Author</li></ul>' +
+          '<ul class="artists"><li>Dolor Artist</li></ul>' +
+          '<ul class="alt-titles"><li>Dolor Sit</li><li>Amet Elit</li></ul>' +
+          '</body></html>',
+        {
+          overrides: {
+            details: {
+              authorsItem: '.authors li',
+              artistsItem: '.artists li',
+              altTitlesItem: '.alt-titles li',
+            },
+          },
+        },
+      ),
+      'lorem',
+    );
+
+    expect(details.authors).toEqual(['Lorem Author', 'Ipsum Author']);
+    expect(details.artists).toEqual(['Dolor Artist']);
+    expect(details.altTitles).toEqual(['Dolor Sit', 'Amet Elit']);
+  });
+
+  it('prefers the list selector when both fields are set', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body>' +
+          '<h1 class="series-title">Lorem</h1>' +
+          '<p class="series-tags">Ignored, Labels</p>' +
+          '<div class="series-genres"><a href="/genres/action/">Action</a></div>' +
+          '</body></html>',
+        {
+          overrides: { details: { tagsItem: '.series-genres a' } },
+        },
+      ),
+      'lorem',
+    );
+
+    expect(details.tags).toEqual(['Action']);
+  });
+
+  it('keeps splitting a single node when no list selector is set', async () => {
+    const details = await extractDetails(
+      runtime(
+        '<html><body><h1 class="series-title">Lorem</h1>' +
+          '<p class="series-tags">Action, Drama | Fantasy</p></body></html>',
+      ),
+      'lorem',
+    );
+
+    expect(details.tags).toEqual(['Action', 'Drama', 'Fantasy']);
+  });
 });
 
 describe('normalisation helpers', () => {

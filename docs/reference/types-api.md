@@ -223,6 +223,10 @@ interface ThemeSelectors {
     artists?: string;
     altTitles?: string;
     tags?: string;
+    altTitlesItem?: string;   // One label per match; wins over altTitles
+    authorsItem?: string;
+    artistsItem?: string;
+    tagsItem?: string;
     status?: string;
     contentRating?: string;
   };

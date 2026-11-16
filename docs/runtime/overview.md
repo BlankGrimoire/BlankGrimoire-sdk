@@ -146,13 +146,15 @@ details = {
   contentRating: normalizeContentRating(readText(doc, selectors.contentRating)),
   coverURL: readImageURL(doc, selectors.cover, baseURL),
   synopsis: readText(doc, selectors.synopsis),
-  altTitles: splitList(readText(doc, selectors.altTitles)),
-  authors: splitList(readText(doc, selectors.authors)),
-  artists: splitList(readText(doc, selectors.artists)),
-  tags: splitList(readText(doc, selectors.tags)),
+  altTitles: readList(doc, selectors.altTitlesItem, selectors.altTitles),
+  authors: readList(doc, selectors.authorsItem, selectors.authors),
+  artists: readList(doc, selectors.artistsItem, selectors.artists),
+  tags: readList(doc, selectors.tagsItem, selectors.tags),
   attribution: { siteName, siteURL, logoURL?, credits? }
 }
 ```
+`readList` collects every match of the `*Item` selector (document order,
+deduplicated) and falls back to splitting a single node on `,`, `|` or newline.
 **Hook**: `adapter.hooks?.getMangaDetails(ctx, key)`
 
 ### 3. Chapters

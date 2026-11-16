@@ -64,6 +64,19 @@ export interface ThemeSelectors {
     artists?: string;
     altTitles?: string;
     tags?: string;
+    /**
+     * List-aware variant of `authors`. Every element matched by the selector
+     * becomes one entry, in document order, with empties and duplicates
+     * removed. When present it wins over `authors`, which stays available for
+     * hosts that do not know this field.
+     */
+    authorsItem?: string;
+    /** List-aware variant of `artists`. See `authorsItem`. */
+    artistsItem?: string;
+    /** List-aware variant of `altTitles`. See `authorsItem`. */
+    altTitlesItem?: string;
+    /** List-aware variant of `tags`. See `authorsItem`. */
+    tagsItem?: string;
     /** Text normalised by the runtime into `MangaStatus`. */
     status?: string;
     /** Text normalised by the runtime into `ContentRating`. */

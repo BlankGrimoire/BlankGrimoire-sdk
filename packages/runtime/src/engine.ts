@@ -139,6 +139,32 @@ function splitList(value: string | undefined): string[] | undefined {
   return items.length > 0 ? items : undefined;
 }
 
+/**
+ * Read a list of labels. A list selector (`*Item`) collects every match in
+ * document order, dropping empty values and duplicates; otherwise the single
+ * node selector is split on the usual separators.
+ */
+function readList(
+  root: DocumentLike | ElementLike,
+  listSelector: string | undefined,
+  singleSelector: string | undefined,
+): string[] | undefined {
+  if (listSelector) {
+    const values: string[] = [];
+    const seen = new Set<string>();
+    for (const element of queryAll(root, listSelector)) {
+      const value = textOf(element);
+      if (value === '' || seen.has(value)) {
+        continue;
+      }
+      seen.add(value);
+      values.push(value);
+    }
+    return values.length > 0 ? values : undefined;
+  }
+  return splitList(readText(root, singleSelector));
+}
+
 /** Normalise site text into the closed `MangaStatus` union. */
 export function normalizeStatus(value: string): MangaStatus {
   const text = value.trim().toLowerCase();
@@ -270,19 +296,23 @@ export async function extractDetails(
     }
   }
 
-  const altTitles = splitList(readText(document, detailsSelectors.altTitles));
+  const altTitles = readList(
+    document,
+    detailsSelectors.altTitlesItem,
+    detailsSelectors.altTitles,
+  );
   if (altTitles) {
     details.altTitles = altTitles;
   }
-  const authors = splitList(readText(document, detailsSelectors.authors));
+  const authors = readList(document, detailsSelectors.authorsItem, detailsSelectors.authors);
   if (authors) {
     details.authors = authors;
   }
-  const artists = splitList(readText(document, detailsSelectors.artists));
+  const artists = readList(document, detailsSelectors.artistsItem, detailsSelectors.artists);
   if (artists) {
     details.artists = artists;
   }
-  const tags = splitList(readText(document, detailsSelectors.tags));
+  const tags = readList(document, detailsSelectors.tagsItem, detailsSelectors.tags);
   if (tags) {
     details.tags = tags;
   }
