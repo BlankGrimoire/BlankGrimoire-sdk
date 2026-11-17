@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 
+import type { ContentKind } from './entities.js';
 import type { ThemeSignature } from './theme.js';
 import type { ApiVersion } from './version.js';
 
@@ -29,6 +30,12 @@ export interface AdapterManifest {
    * site and adds them to the network policy. See `ThemeAdapter.networkHosts`.
    */
   networkHosts?: string[];
+  /**
+   * Content kinds the adapter can produce. Missing means `["image"]`, which
+   * keeps every existing adapter valid. Hosts use it to filter repositories
+   * before installing something they cannot render.
+   */
+  contentKinds?: ContentKind[];
 }
 
 export interface RepositoryIndex {

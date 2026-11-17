@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 
-import { API_VERSION, type ApiVersion, type ThemeSignature } from '@blankgrimoire/types';
+import {
+  API_VERSION,
+  type ApiVersion,
+  type ContentKind,
+  type ThemeSignature,
+} from '@blankgrimoire/types';
 import fs from 'node:fs';
 
 export interface BuildManifestOptions {
@@ -11,6 +16,8 @@ export interface BuildManifestOptions {
   sha256: string;
   referrerHeaders?: Record<string, string>;
   networkHosts?: string[];
+  /** Content kinds the adapter produces; omitted means image-only. */
+  contentKinds?: ContentKind[];
   outFile: string;
 }
 
@@ -63,7 +70,7 @@ export async function buildManifest(options: BuildManifestOptions): Promise<stri
   const apiVersion: ApiVersion = API_VERSION;
   const networkHosts = options.networkHosts ?? [];
   validateNetworkHosts(networkHosts);
-  const manifest = {
+  const manifest: Record<string, unknown> = {
     id: options.id,
     name: options.name,
     version: options.version,
@@ -73,6 +80,9 @@ export async function buildManifest(options: BuildManifestOptions): Promise<stri
     referrerHeaders: options.referrerHeaders ?? {},
     networkHosts,
   };
+  if (options.contentKinds) {
+    manifest.contentKinds = options.contentKinds;
+  }
 
   const content = JSON.stringify(manifest, null, 2);
   fs.writeFileSync(options.outFile, content, { encoding: 'utf8' });

@@ -4,6 +4,8 @@ import {
   API_VERSION,
   type Attribution,
   type Chapter,
+  type ChapterContent,
+  type ContentKind,
   type ContentRating,
   type ExtractedGenres,
   type GenreMapping,
@@ -22,6 +24,7 @@ import {
 import type { DocumentLike, ElementLike, ParseHTML, WindowLike } from './dom.js';
 import { attr, firstAttribute, queryAll, resolveURL, textOf } from './dom.js';
 import { console } from './prelude.js';
+import { extractContentBody } from './content.js';
 import { runStrategy, type StrategyEnvironment } from './strategies.js';
 
 export interface ThemeRuntimeOptions {
@@ -34,10 +37,14 @@ export interface ThemeRuntimeOptions {
 
 export type ExtractionResult = Page[];
 
-export interface PageKeys {
+/** Key pair identifying a chapter for page or content extraction. */
+export interface ChapterKeys {
   mangaKey: string;
   chapterKey: string;
 }
+
+/** Alias kept so existing hosts keep compiling. */
+export type PageKeys = ChapterKeys;
 
 /** Raised when an adapter bundle targets a different contract version. */
 export class UnsupportedApiVersionError extends Error {
@@ -72,6 +79,11 @@ export function resolveSelectors(
     chapters: { ...base.chapters, ...overrides.chapters },
     pages: { strategies: overrides.pages?.strategies ?? base.pages.strategies },
   };
+
+  const contentStrategies = overrides.content?.strategies ?? base.content?.strategies;
+  if (contentStrategies) {
+    resolved.content = { strategies: contentStrategies };
+  }
 
   const attribution = overrides.attribution
     ? { ...base.attribution, ...overrides.attribution }
@@ -209,6 +221,20 @@ export function normalizeContentRating(value: string): ContentRating {
   return 'unknown';
 }
 
+/**
+ * Normalise site text into the closed `ContentKind` union.
+ *
+ * Missing or unrecognised text means `image`: a page only marks itself as
+ * text when it says so, which keeps image adapters unchanged.
+ */
+export function normalizeContentKind(value: string): ContentKind {
+  const text = value.trim().toLowerCase();
+  if (text !== '' && /(text|novel|book|prose|reading)/.test(text)) {
+    return 'text';
+  }
+  return 'image';
+}
+
 function parseChapterNumber(value: string | undefined): number | undefined {
   if (!value) {
     return undefined;
@@ -290,6 +316,11 @@ export async function extractDetails(
   const coverURL = readImageURL(document, detailsSelectors.cover, baseURL);
   if (coverURL) {
     details.coverURL = coverURL;
+  }
+
+  const contentKindText = readText(document, detailsSelectors.contentKind);
+  if (contentKindText) {
+    details.contentKind = normalizeContentKind(contentKindText);
   }
 
   const optionalText: Array<[keyof Pick<MangaDetails, 'synopsis'>, string | undefined]> = [
@@ -461,6 +492,45 @@ export async function extractPages(
   return [];
 }
 
+/**
+ * Extract a text chapter body. Hooks take precedence over declarative
+ * strategies, mirroring `pages`.
+ *
+ * Returns `null` when the adapter has no `content` config or no strategy
+ * matches, which is what an image adapter yields.
+ */
+export async function extractChapterContent(
+  runtime: ThemeRuntimeOptions,
+  keys: ChapterKeys,
+): Promise<ChapterContent | null> {
+  assertAdapterAPIVersion(runtime.adapter);
+  const hook = runtime.adapter.hooks?.getContent;
+  if (hook) {
+    return hook(runtime.context, keys.mangaKey, keys.chapterKey);
+  }
+
+  const config = selectorsFor(runtime).content;
+  if (!config) {
+    return null;
+  }
+
+  for (const strategy of config.strategies) {
+    const extracted = extractContentBody(strategy, runtime.document);
+    if (extracted) {
+      const content: ChapterContent = {
+        key: keys.chapterKey,
+        body: extracted.body,
+      };
+      if (extracted.title) {
+        content.title = extracted.title;
+      }
+      return content;
+    }
+  }
+
+  return null;
+}
+
 /** Extract genre filters from a page using the theme's genre mapping. */
 export async function extractGenres(
   runtime: ThemeRuntimeOptions,
@@ -572,6 +642,14 @@ export async function dispatch(
     case 'getPages':
       return toJSON(
         await extractPages(runtime, {
+          mangaKey: String(args.mangaKey ?? ''),
+          chapterKey: String(args.chapterKey ?? ''),
+        }),
+      );
+    case 'content':
+    case 'getContent':
+      return toJSON(
+        await extractChapterContent(runtime, {
           mangaKey: String(args.mangaKey ?? ''),
           chapterKey: String(args.chapterKey ?? ''),
         }),
