@@ -22,6 +22,7 @@ import {
   extractDetails,
   extractChapters,
   extractPages,
+  extractChapterContent,
   extract,
   normalizeStatus,
   normalizeContentRating,
@@ -70,6 +71,10 @@ interface BlankGrimoireRuntime {
   extractDetails(runtime: ThemeRuntimeOptions, key: string): Promise<MangaDetails>;
   extractChapters(runtime: ThemeRuntimeOptions, key: string): Promise<Chapter[]>;
   extractPages(runtime: ThemeRuntimeOptions, keys: PageKeys): Promise<Page[]>;
+  extractChapterContent(
+    runtime: ThemeRuntimeOptions,
+    keys: ChapterKeys,
+  ): Promise<ChapterContent | null>;
   
   // Prelude
   __http(request: HttpRequest): Promise<HttpResponse>;

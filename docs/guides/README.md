@@ -8,6 +8,7 @@ Step-by-step tutorials for common tasks.
 |-------|-------------|------------|
 | [Creating Your First Adapter](creating-first-adapter.md) | Complete walkthrough from scaffold to signed bundle | Beginner |
 | [Writing Declarative Selectors](writing-selectors.md) | CSS selectors, strategies, and overrides | Beginner |
+| [Serving Text Chapters](text-chapters.md) | Declare text series and extract prose bodies | Intermediate |
 | [Using Hooks for Edge Cases](using-hooks.md) | When and how to write TypeScript hooks | Intermediate |
 | [Testing Adapters Locally](testing-adapters.md) | VMHarness, MockServer, and unit tests | Beginner |
 | [Publishing a Repository](publishing-repository.md) | Building index.json and deploying to GitHub Pages | Intermediate |

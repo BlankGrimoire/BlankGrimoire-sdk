@@ -8,6 +8,13 @@
         "apiVersion": {
           "$ref": "#/definitions/ApiVersion"
         },
+        "contentKinds": {
+          "description": "Content kinds the adapter can produce. Missing means `[\"image\"]`, which keeps every existing adapter valid. Hosts use it to filter repositories before installing something they cannot render.",
+          "items": {
+            "$ref": "#/definitions/ContentKind"
+          },
+          "type": "array"
+        },
         "detectionSignature": {
           "$ref": "#/definitions/ThemeSignature",
           "description": "Theme detection signature (not a cryptographic signature)."
@@ -109,6 +116,80 @@
       ],
       "type": "object"
     },
+    "ChapterContent": {
+      "additionalProperties": false,
+      "description": "Payload returned by the `content` dispatch method for a text chapter.",
+      "properties": {
+        "attribution": {
+          "$ref": "#/definitions/Attribution"
+        },
+        "body": {
+          "$ref": "#/definitions/ChapterText"
+        },
+        "key": {
+          "description": "Chapter key the body belongs to.",
+          "type": "string"
+        },
+        "language": {
+          "description": "BCP-47 language tag.",
+          "type": "string"
+        },
+        "title": {
+          "description": "Title read from the page, when the adapter finds one.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "body"
+      ],
+      "type": "object"
+    },
+    "ChapterText": {
+      "additionalProperties": false,
+      "description": "Body of a text chapter.\n\n`html` keeps markup for rich rendering; `text` is plain text with paragraphs already separated. Sanitisation is the host's job: the runtime never strips scripts, frames or event handlers.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "html",
+            "text"
+          ],
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ],
+      "type": "object"
+    },
+    "ContentConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "strategies": {
+          "description": "Tried in order; the first strategy that yields a body wins.",
+          "items": {
+            "$ref": "#/definitions/ContentStrategy"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "strategies"
+      ],
+      "type": "object"
+    },
+    "ContentKind": {
+      "description": "Shape of a chapter's payload.\n\n`image` chapters expose ordered page images; `text` chapters expose an HTML or plain-text body fetched on demand. A missing value means `image`, so existing adapters stay valid.",
+      "enum": [
+        "image",
+        "text"
+      ],
+      "type": "string"
+    },
     "ContentRating": {
       "description": "Content rating. Adapters emit `unknown` when the site does not expose one.",
       "enum": [
@@ -118,6 +199,118 @@
         "unknown"
       ],
       "type": "string"
+    },
+    "ContentSelectors": {
+      "additionalProperties": false,
+      "description": "Selectors for extracting a text chapter body.\n\nExtraction is declarative so hosts can reason about it without executing arbitrary code. `remove` strips elements that must never reach the reader (navigation, ad slots, paywall notices); a host whose DOM cannot mutate ignores it and the host-side sanitiser still runs on the result.",
+      "properties": {
+        "container": {
+          "description": "Element holding the chapter body.",
+          "type": "string"
+        },
+        "join": {
+          "description": "Separator between paragraphs for `css-text`. Defaults to a blank line.",
+          "type": "string"
+        },
+        "paragraph": {
+          "description": "Selector matching one paragraph inside `container`. When omitted the whole container text is used, which suits single-paragraph bodies.",
+          "type": "string"
+        },
+        "remove": {
+          "description": "Selectors removed from the container before the body is read.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "title": {
+          "description": "Optional selector for the chapter title on the same page.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "container"
+      ],
+      "type": "object"
+    },
+    "ContentStrategy": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "container": {
+              "description": "Element holding the chapter body.",
+              "type": "string"
+            },
+            "join": {
+              "description": "Separator between paragraphs for `css-text`. Defaults to a blank line.",
+              "type": "string"
+            },
+            "kind": {
+              "const": "css-text",
+              "type": "string"
+            },
+            "paragraph": {
+              "description": "Selector matching one paragraph inside `container`. When omitted the whole container text is used, which suits single-paragraph bodies.",
+              "type": "string"
+            },
+            "remove": {
+              "description": "Selectors removed from the container before the body is read.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": {
+              "description": "Optional selector for the chapter title on the same page.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "container",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "container": {
+              "description": "Element holding the chapter body.",
+              "type": "string"
+            },
+            "join": {
+              "description": "Separator between paragraphs for `css-text`. Defaults to a blank line.",
+              "type": "string"
+            },
+            "kind": {
+              "const": "css-html",
+              "type": "string"
+            },
+            "paragraph": {
+              "description": "Selector matching one paragraph inside `container`. When omitted the whole container text is used, which suits single-paragraph bodies.",
+              "type": "string"
+            },
+            "remove": {
+              "description": "Selectors removed from the container before the body is read.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": {
+              "description": "Optional selector for the chapter title on the same page.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "container",
+            "kind"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "One text extraction strategy.\n\n`css-text` returns the container (or its paragraphs) as plain text; `css-html` returns the container markup so the reader can keep formatting. Strategies are tried in order and the first non-empty body wins."
     },
     "ExtractionStrategy": {
       "anyOf": [
@@ -334,6 +527,10 @@
             "type": "string"
           },
           "type": "array"
+        },
+        "contentKind": {
+          "$ref": "#/definitions/ContentKind",
+          "description": "Whether chapters carry images or text. Missing means `image`, so the field is optional for every existing adapter."
         },
         "contentRating": {
           "$ref": "#/definitions/ContentRating"
@@ -686,6 +883,10 @@
           ],
           "type": "object"
         },
+        "content": {
+          "$ref": "#/definitions/ContentConfig",
+          "description": "Text extraction for `text` chapters. Optional: an adapter that only serves page images leaves it out and `content` returns nothing."
+        },
         "details": {
           "additionalProperties": false,
           "properties": {
@@ -708,6 +909,10 @@
             },
             "authorsItem": {
               "description": "List-aware variant of `authors`. Every element matched by the selector becomes one entry, in document order, with empties and duplicates removed. When present it wins over `authors`, which stays available for hosts that do not know this field.",
+              "type": "string"
+            },
+            "contentKind": {
+              "description": "Text normalised by the runtime into `ContentKind`. Missing means the series is image-based; a value containing \"text\", \"novel\" or \"prose\" marks it as text.",
               "type": "string"
             },
             "contentRating": {
@@ -831,6 +1036,18 @@
           },
           "type": "object"
         },
+        "content": {
+          "additionalProperties": false,
+          "properties": {
+            "strategies": {
+              "items": {
+                "$ref": "#/definitions/ContentStrategy"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
         "details": {
           "additionalProperties": false,
           "properties": {
@@ -853,6 +1070,10 @@
             },
             "authorsItem": {
               "description": "List-aware variant of `authors`. Every element matched by the selector becomes one entry, in document order, with empties and duplicates removed. When present it wins over `authors`, which stays available for hosts that do not know this field.",
+              "type": "string"
+            },
+            "contentKind": {
+              "description": "Text normalised by the runtime into `ContentKind`. Missing means the series is image-based; a value containing \"text\", \"novel\" or \"prose\" marks it as text.",
               "type": "string"
             },
             "contentRating": {

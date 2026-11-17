@@ -60,6 +60,7 @@ interface ThemeSelectors {
     tagsItem?: string;
     status?: string;           // Text → normalized to MangaStatus
     contentRating?: string;    // Text → normalized to ContentRating
+    contentKind?: string;      // Text → normalized to ContentKind
   };
   chapters: {
     item: string;              // Chapter list item selector
@@ -71,6 +72,7 @@ interface ThemeSelectors {
     premiumMarker?: string;    // Alias of excludeItem kept for shipped adapters
   };
   pages: PagesConfig;          // Array of extraction strategies
+  content?: ContentConfig;     // Text extraction; omit for image-only adapters
   attribution?: {
     logo?: string;
     credits?: string;
@@ -86,6 +88,7 @@ interface ThemeSelectorsOverrides {
   details?: Partial<ThemeSelectors['details']>;
   chapters?: Partial<ThemeSelectors['chapters']>;
   pages?: { strategies?: ExtractionStrategy[] };
+  content?: { strategies?: ContentStrategy[] };
   attribution?: Partial<NonNullable<ThemeSelectors['attribution']>>;
 }
 ```
@@ -97,6 +100,11 @@ interface ThemeHooks {
   getMangaDetails?(ctx: SiteContext, key: string): Promise<MangaDetails>;
   getChapters?(ctx: SiteContext, key: string): Promise<Chapter[]>;
   getPages?(ctx: SiteContext, mangaKey: string, chapterKey: string): Promise<Page[]>;
+  getContent?(
+    ctx: SiteContext,
+    mangaKey: string,
+    chapterKey: string,
+  ): Promise<ChapterContent | null>;
 }
 ```
 - Hooks take precedence over declarative selectors
@@ -121,6 +129,84 @@ interface ThemeAdapter {
 The runtime throws `UnsupportedApiVersionError` when an adapter does not
 declare `apiVersion: 1`. The iOS host performs the same check when it loads a
 bundle and when it decodes a manifest.
+
+### Text Chapters
+
+Chapters are either image pages or text. The kind is a closed union:
+
+```ts
+type ContentKind = 'image' | 'text';
+```
+
+A series declares it from the details page through `details.contentKind`, and
+the manifest advertises what an adapter can produce:
+
+```ts
+interface MangaDetails {
+  // ...
+  contentKind?: ContentKind;   // Missing means 'image'
+}
+
+interface AdapterManifest {
+  // ...
+  contentKinds?: ContentKind[]; // Missing means ['image']
+}
+```
+
+The body comes from a separate dispatch method so the image path is untouched:
+
+```ts
+interface ChapterText {
+  kind: 'html' | 'text';
+  value: string;
+}
+
+interface ChapterContent {
+  key: string;
+  title?: string;
+  body: ChapterText;
+  language?: string;
+  attribution?: Attribution;
+}
+```
+
+```ts
+dispatch('content', { mangaKey, chapterKey }) // → ChapterContent | null
+```
+
+Extraction is declarative, like pages:
+
+```ts
+interface ContentSelectors {
+  container: string;      // Element holding the body
+  paragraph?: string;     // One match per paragraph inside the container
+  title?: string;         // Optional chapter title
+  remove?: string[];      // Selectors stripped before reading (best effort)
+  join?: string;          // Paragraph separator for css-text; default blank line
+}
+
+type ContentStrategy =
+  | ({ kind: 'css-text' } & ContentSelectors)  // Plain text
+  | ({ kind: 'css-html' } & ContentSelectors); // Markup preserved
+
+interface ContentConfig {
+  strategies: ContentStrategy[]; // First non-empty body wins
+}
+```
+
+`getContent(ctx, mangaKey, chapterKey)` overrides the declarative strategies
+when a site needs custom logic.
+
+**Sanitisation is the host's job.** The runtime returns the markup as the site
+produced it: it never strips scripts, frames or inline event handlers, because
+it runs with a minimal `DocumentLike` where a second sanitiser would be
+unverifiable. Hosts must sanitise before rendering.
+
+`remove` selectors need a mutable DOM (`Element.remove`). A host whose parser
+cannot mutate ignores them; its sanitiser still runs on the result.
+
+The additive decision and its consequences are recorded in
+[ADR 0001](adr-0001-text-chapters.md).
 
 ### Paid Content (Rule 9)
 

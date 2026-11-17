@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: MIT
 
-import type { Chapter, MangaDetails, MangaSummary, Page, PagedResult, SearchQuery } from './entities.js';
+import type {
+  Chapter,
+  ChapterContent,
+  MangaDetails,
+  MangaSummary,
+  Page,
+  PagedResult,
+  SearchQuery,
+} from './entities.js';
+import type { ContentConfig, ContentStrategy } from './content.js';
 import type { ExtractionStrategy, PagesConfig } from './strategies.js';
 import { API_VERSION, type ApiVersion } from './version.js';
 
@@ -15,6 +24,9 @@ export interface ThemeSelectorsOverrides {
   chapters?: Partial<ThemeSelectors['chapters']>;
   pages?: {
     strategies?: ExtractionStrategy[];
+  };
+  content?: {
+    strategies?: ContentStrategy[];
   };
   attribution?: Partial<NonNullable<ThemeSelectors['attribution']>>;
 }
@@ -81,6 +93,12 @@ export interface ThemeSelectors {
     status?: string;
     /** Text normalised by the runtime into `ContentRating`. */
     contentRating?: string;
+    /**
+     * Text normalised by the runtime into `ContentKind`. Missing means the
+     * series is image-based; a value containing "text", "novel" or "prose"
+     * marks it as text.
+     */
+    contentKind?: string;
   };
   chapters: {
     item: string;
@@ -101,6 +119,11 @@ export interface ThemeSelectors {
     premiumMarker?: string;
   };
   pages: PagesConfig;
+  /**
+   * Text extraction for `text` chapters. Optional: an adapter that only serves
+   * page images leaves it out and `content` returns nothing.
+   */
+  content?: ContentConfig;
   attribution?: {
     logo?: string;
     credits?: string;
@@ -112,6 +135,11 @@ export interface ThemeHooks {
   getMangaDetails?(ctx: SiteContext, key: string): Promise<MangaDetails>;
   getChapters?(ctx: SiteContext, key: string): Promise<Chapter[]>;
   getPages?(ctx: SiteContext, mangaKey: string, chapterKey: string): Promise<Page[]>;
+  getContent?(
+    ctx: SiteContext,
+    mangaKey: string,
+    chapterKey: string,
+  ): Promise<ChapterContent | null>;
 }
 
 export interface ThemeAdapter {

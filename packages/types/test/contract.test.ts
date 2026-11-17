@@ -19,11 +19,14 @@ const fixturesDir = `${root}fixtures/v1/`;
 const FIXTURES: Record<string, string> = {
   'attribution.json': 'Attribution',
   'chapter.json': 'Chapter',
+  'chapter-content.json': 'ChapterContent',
+  'content-strategy.json': 'ContentStrategy',
   'extraction-strategy.json': 'ExtractionStrategy',
   'extraction-strategy-script-json.json': 'ExtractionStrategy',
   'http-request.json': 'HttpRequest',
   'http-response.json': 'HttpResponse',
   'manga-details.json': 'MangaDetails',
+  'manga-details-text.json': 'MangaDetails',
   'manga-details-unknown-status.json': 'MangaDetails',
   'manga-summary.json': 'MangaSummary',
   'manifest.json': 'AdapterManifest',
@@ -100,6 +103,24 @@ describe('schema/v1.json rejects values outside the contract', () => {
     expect(validate({ ...details, status: 'unknown', contentRating: 'unknown' })).toBe(
       true,
     );
+  });
+
+  it('rejects an unknown chapter body kind', () => {
+    const validate = validator('ChapterContent');
+    const content = readFixture('chapter-content.json') as Record<string, unknown>;
+
+    expect(validate(content)).toBe(true);
+    expect(validate({ ...content, body: { kind: 'markdown', value: 'x' } })).toBe(false);
+    expect(validate({ ...content, body: { kind: 'text', value: 'x' } })).toBe(true);
+  });
+
+  it('rejects an unknown content kind', () => {
+    const validate = validator('MangaDetails');
+    const details = readFixture('manga-details-text.json') as Record<string, unknown>;
+
+    expect(validate(details)).toBe(true);
+    expect(validate({ ...details, contentKind: 'video' })).toBe(false);
+    expect(validate({ ...details, contentKind: undefined })).toBe(true);
   });
 
   it('rejects the legacy manifest signature field', () => {

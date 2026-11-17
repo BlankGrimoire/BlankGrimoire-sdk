@@ -108,6 +108,58 @@ interface Page {
 ```ts
 type MangaStatus = 'ongoing' | 'completed' | 'hiatus' | 'cancelled' | 'unknown';
 type ContentRating = 'safe' | 'suggestive' | 'mature' | 'unknown';
+
+### ContentKind
+
+```ts
+type ContentKind = 'image' | 'text';
+```
+
+`MangaDetails.contentKind` marks a series as prose; missing means `image`.
+`AdapterManifest.contentKinds` advertises what an adapter can produce and
+defaults to `['image']`.
+
+### ChapterText / ChapterContent
+
+```ts
+interface ChapterText {
+  kind: 'html' | 'text';
+  value: string;
+}
+
+interface ChapterContent {
+  key: string;
+  title?: string;
+  body: ChapterText;
+  language?: string;
+  attribution?: Attribution;
+}
+```
+
+Returned by `dispatch('content', …)` and by the `getContent` hook. The body is
+untrusted markup: hosts sanitise it before rendering.
+
+### ContentConfig / ContentStrategy
+
+```ts
+interface ContentSelectors {
+  container: string;
+  paragraph?: string;
+  title?: string;
+  remove?: string[];
+  join?: string;
+}
+
+type ContentStrategy =
+  | ({ kind: 'css-text' } & ContentSelectors)
+  | ({ kind: 'css-html' } & ContentSelectors);
+
+interface ContentConfig {
+  strategies: ContentStrategy[];
+}
+```
+
+Optional on `ThemeSelectors`. Omit it for image-only adapters.
 ```
 
 ### PagedResult

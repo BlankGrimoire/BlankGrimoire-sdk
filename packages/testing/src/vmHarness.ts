@@ -6,6 +6,7 @@ import * as nodeVm from 'node:vm';
 import {
   API_VERSION,
   type Chapter,
+  type ChapterContent,
   type MangaDetails,
   type MangaSummary,
   type Page,
@@ -42,6 +43,7 @@ export interface ThemeTestResult {
   details?: MangaDetails;
   chapters?: Chapter[];
   pages?: Page[];
+  content?: ChapterContent | null;
 }
 
 /**
@@ -189,6 +191,7 @@ export class VMHarness {
     base.chapters = await call<Chapter[]>('chapters', { key: mangaKey });
     const chapterKey = options.chapterKey ?? base.chapters[0]?.key ?? 'chapter-1';
     base.pages = await call<Page[]>('pages', { mangaKey, chapterKey });
+    base.content = await call<ChapterContent | null>('content', { mangaKey, chapterKey });
     return base;
   }
 

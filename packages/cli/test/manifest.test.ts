@@ -54,6 +54,41 @@ describe('buildManifest', () => {
     expect(Object.keys(manifest)).not.toContain('signature');
   });
 
+  it('publishes content kinds when the adapter produces text', async () => {
+    directory = makeTempDir('blankgrimoire-manifest-');
+    const outFile = path.join(directory, 'manifest.json');
+
+    await buildManifest({
+      id: 'theme.example',
+      name: 'Example Theme',
+      version: '1.0.0',
+      detectionSignature: { selectors: ['.example-reader'], minScore: 3 },
+      sha256,
+      contentKinds: ['text'],
+      outFile,
+    });
+
+    const manifest = readJSON<AdapterManifest>(outFile);
+    expect(manifest.contentKinds).toEqual(['text']);
+  });
+
+  it('omits content kinds for image-only adapters', async () => {
+    directory = makeTempDir('blankgrimoire-manifest-');
+    const outFile = path.join(directory, 'manifest.json');
+
+    await buildManifest({
+      id: 'theme.example',
+      name: 'Example Theme',
+      version: '1.0.0',
+      detectionSignature: { selectors: ['.example-reader'], minScore: 3 },
+      sha256,
+      outFile,
+    });
+
+    const manifest = readJSON<Record<string, unknown>>(outFile);
+    expect(Object.keys(manifest)).not.toContain('contentKinds');
+  });
+
   it('publishes referrer headers when provided', async () => {
     directory = makeTempDir('blankgrimoire-manifest-');
     const outFile = path.join(directory, 'manifest.json');
