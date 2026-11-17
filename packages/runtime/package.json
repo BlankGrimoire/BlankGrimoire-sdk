@@ -1,6 +1,6 @@
 {
   "name": "@blankgrimoire/runtime",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Declarative extraction runtime for BlankGrimoire theme adapters.",
   "license": "MIT",
   "type": "module",

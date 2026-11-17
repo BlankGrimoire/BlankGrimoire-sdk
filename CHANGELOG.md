@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.5.0](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.4.1...v1.5.0) (2026-11-17)
+
+### Features
+
+* **contract:** support text-based chapters ([#46](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/46)) ([#47](https://github.com/BlankGrimoire/BlankGrimoire-sdk/issues/47)) ([170687d](https://github.com/BlankGrimoire/BlankGrimoire-sdk/commit/170687d082613396e6da3bb41e6cc83c942f2cc5))
+
 ## [1.4.1](https://github.com/BlankGrimoire/BlankGrimoire-sdk/compare/v1.4.0...v1.4.1) (2026-11-16)
 
 ### Bug Fixes
