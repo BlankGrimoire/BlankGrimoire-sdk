@@ -21,6 +21,15 @@ export type MangaStatus = 'ongoing' | 'completed' | 'hiatus' | 'cancelled' | 'un
 /** Content rating. Adapters emit `unknown` when the site does not expose one. */
 export type ContentRating = 'safe' | 'suggestive' | 'mature' | 'unknown';
 
+/**
+ * Shape of a chapter's payload.
+ *
+ * `image` chapters expose ordered page images; `text` chapters expose an HTML
+ * or plain-text body fetched on demand. A missing value means `image`, so
+ * existing adapters stay valid.
+ */
+export type ContentKind = 'image' | 'text';
+
 /** Genre tag for cross-site filtering. Adapters should normalize to these. */
 export type Genre = 
   | 'action' 
@@ -70,6 +79,11 @@ export interface MangaDetails extends MangaSummary {
   genres?: string[];
   status: MangaStatus;
   contentRating: ContentRating;
+  /**
+   * Whether chapters carry images or text. Missing means `image`, so the
+   * field is optional for every existing adapter.
+   */
+  contentKind?: ContentKind;
   attribution?: Attribution;
 }
 
@@ -88,6 +102,30 @@ export interface Page {
   index: number;
   imageURL: URLString;
   headers?: Record<string, string>;
+}
+
+/**
+ * Body of a text chapter.
+ *
+ * `html` keeps markup for rich rendering; `text` is plain text with
+ * paragraphs already separated. Sanitisation is the host's job: the runtime
+ * never strips scripts, frames or event handlers.
+ */
+export interface ChapterText {
+  kind: 'html' | 'text';
+  value: string;
+}
+
+/** Payload returned by the `content` dispatch method for a text chapter. */
+export interface ChapterContent {
+  /** Chapter key the body belongs to. */
+  key: string;
+  /** Title read from the page, when the adapter finds one. */
+  title?: string;
+  body: ChapterText;
+  /** BCP-47 language tag. */
+  language?: string;
+  attribution?: Attribution;
 }
 
 export interface PagedResult<T> {

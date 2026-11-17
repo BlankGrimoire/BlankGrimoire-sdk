@@ -152,6 +152,59 @@ describe('VMHarness', () => {
     ]);
   });
 
+  it('extracts a text chapter when the adapter declares one', async () => {
+    const adapter: ThemeAdapter = {
+      ...declarativeAdapter,
+      selectors: {
+        ...selectors,
+        details: { ...selectors.details, contentKind: '.series-kind' },
+        content: {
+          strategies: [
+            {
+              kind: 'css-text',
+              container: '.chapter-body',
+              paragraph: '.chapter-body p',
+              title: 'h1.chapter-title',
+              join: '\n',
+            },
+          ],
+        },
+      },
+    };
+
+    const html = `<!DOCTYPE html>
+<html>
+  <head><meta name="generator" content="ExampleCMS v2"></head>
+  <body>
+    <div class="example-reader">
+      <h1 class="series-title">Lorem Ipsum</h1>
+      <p class="series-status">Ongoing</p>
+      <p class="series-rating">Safe</p>
+      <p class="series-kind">Web Novel</p>
+      <h1 class="chapter-title">Chapter 12</h1>
+      <article class="chapter-body">
+        <p>First paragraph.</p>
+        <p>Second paragraph.</p>
+      </article>
+    </div>
+  </body>
+</html>`;
+
+    const harness = new VMHarness(['example.org'], runtimeIIFE, adapter);
+    const result = await harness.testTheme(html, 'https://example.org/', {
+      mangaKey: 'lorem-ipsum',
+      chapterKey: 'https://example.org/series/lorem/chapter-12',
+    });
+
+    expect(result.details?.contentKind).toBe('text');
+    expect(result.content?.key).toBe('https://example.org/series/lorem/chapter-12');
+    expect(result.content?.title).toBe('Chapter 12');
+    expect(result.content?.body).toEqual({
+      kind: 'text',
+      value: 'First paragraph.\nSecond paragraph.',
+    });
+  });
+
   it('scores detection with the host weights and ignores probePaths', async () => {
     const adapter: ThemeAdapter = {
       ...declarativeAdapter,

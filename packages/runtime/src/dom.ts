@@ -11,6 +11,11 @@ export interface ElementLike {
   querySelector(selector: string): ElementLike | null;
   querySelectorAll(selector: string): ArrayLike<ElementLike>;
   innerHTML?: string;
+  /**
+   * Detaches the element from its parent. Hosts whose DOM cannot mutate omit
+   * it; the runtime then leaves `remove` selectors in place.
+   */
+  remove?: () => void;
 }
 
 export interface DocumentLike {

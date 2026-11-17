@@ -9,6 +9,9 @@ export type { ApiVersion } from './version.js';
 export type {
   Attribution,
   Chapter,
+  ChapterContent,
+  ChapterText,
+  ContentKind,
   ContentRating,
   ISODateString,
   MangaDetails,
@@ -20,6 +23,11 @@ export type {
   URLString,
 } from './entities.js';
 export type { HttpRequest, HttpResponse } from './http.js';
+export type {
+  ContentConfig,
+  ContentSelectors,
+  ContentStrategy,
+} from './content.js';
 export type { AdapterManifest, RepositoryIndex } from './manifest.js';
 export type { ExtractionStrategy, PagesConfig } from './strategies.js';
 export type {
